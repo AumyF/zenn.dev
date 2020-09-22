@@ -1,0 +1,18 @@
+{
+  "name": "zenn.dev",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aumyf/zenn.dev.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aumyf/zenn.dev/issues"
+  },
+  "homepage": "https://github.com/aumyf/zenn.dev#readme",
+  "dependencies": {
+    "zenn-cli": "^0.1.33"
+  }
+}
