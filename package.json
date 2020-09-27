@@ -2,6 +2,7 @@
   "name": "zenn.dev",
   "description": "",
   "scripts": {
+    "start": "zenn preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
