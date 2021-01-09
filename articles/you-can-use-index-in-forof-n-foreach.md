@@ -1,5 +1,5 @@
 ---
-title: "JavaScript: forEach、mapでもコールバック関数の第2引数から添字は取れるのでforにする必要はない"
+title: "JavaScript: forEach、mapでもコールバック関数の第2引数から添字を取れるのでforを使う必要はない"
 type: tech
 topics: [JavaScript]
 emoji: 🌀
@@ -10,7 +10,7 @@ published: true
 
 https://qiita.com/tetsuya-zama/items/11e19b9da4892eb365c4
 
-この記事のブコメ等で「for-of では添字を取れないので添字が欲しかったら for を使う」と解釈できるものを複数発見しました。Twitter検索からも似たような認識を持っている方がいらっしゃるようです。これは勘違いです。for-of / forEach / map でも添字は取れるので、**添字がほしいだけなら素の for を使う必要はありません**。
+この記事のブコメ等で「for-of では添字を取れないので添字が欲しかったら for を使う」と解釈できるものを複数発見しました。Twitter 検索からも似たような認識を持っている方がいらっしゃるようです。これは勘違いです。for-of / forEach / map でも添字は取れるので、**添字がほしいだけなら素の for を使う必要はありません**。
 
 # `forEach` `map` の第 2 引数は添字
 
@@ -54,11 +54,11 @@ https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Ar
 `array.entries()` は `[添字, 要素]` という値を生成するイテレータオブジェクトを返す関数です。イテレータは配列みたいに連続した値が入っていて、配列みたいに `for of` の `of` の右側に置くことで各要素に繰り返し処理を行えます。
 
 :::message
-ちなみによく似た [`Object.entries()`](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object/entries) という関数もあり、`for (const [value, index] of Object.entries(arr))` という使い方もできるのですが、これだと `[index]` が数値でなく文字列になってしまっているので扱いづらいです。これは、配列の添字 `0, 1, ...` が実は数値でなく文字列 `'0', '1', ...` で保持されているからです。`arr[0]` という添字アクセスも型変換で `arr['0']` に置き換えられています。お手元の開発者ツールとかでぜひお試しください。
+ちなみによく似た [`Object.entries()`](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Object/entries) という関数もあり、`for (const [index, value] of Object.entries(arr))` という使い方もできるのですが、これだと `[index]` が数値でなく文字列になってしまっているので扱いづらいです。これは、配列の添字 `0, 1, ...` が実は数値でなく文字列 `'0', '1', ...` で保持されているからです。`arr[0]` という添字アクセスも型変換で `arr['0']` に置き換えられています。お手元の開発者ツールとかでぜひお試しください。
 :::
 
 ---
 
 `for-of` と `forEach` `map` でも添字を使えるので、添字を取得したいだけなら素の `for` を使う必要はない、ということを説明しました。
 
-行いたい処理が複雑になるとどうしても `for (let i = 0; ...)` という素朴な for 文を書かなければいけない場面は存在します。それは仕方ないことですが、今ではありません。`for` で妥協する前に [MDNでArrayのメソッドの項目](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array#Instance_methods) で適切な関数を探したり、なかったら自分で作ったりする、そういう人が増えたらいいなあと思っています。
+行いたい処理が複雑になるとどうしても `for (let i = 0; ...)` という素朴な for 文を書かなければいけない場面は存在します。それは仕方ないことですが、今ではありません。`for` で妥協する前に [MDN で Array のメソッドの項目](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array#Instance_methods) で適切な関数を探したり、なかったら自分で作ったりする、そういう人が増えたらいいなあと思っています。
