@@ -8,7 +8,7 @@ published: false
 
 「[Null 安全でない言語は、もはやレガシー言語だ](https://qiita.com/koher/items/e4835bd429b88809ab33)」と言われて 4 年が経ちましたが、みなさんいかがお過ごしでしょうか？Null 安全してますか？それとも `undefined is not a function` とか `Cannot read property 'foo' of undefined` みたいな実行時エラーに頭を悩ませていますか？4 年間で ECMAScript の数字がいくつ上がったかご存知ですか？4 年間で TypeScript の機能がどれくらい増えてどれくらい便利になったか把握できていますか？
 
-この 4 年の間に TypeScript は勢力を拡大し、JavaScript の世界でも **Null 安全** が浸透してきたことと思います。JavaScript の規格である ECMAScript は毎年の改定により機能が増え、それに合わせて TypeScript の Null 安全機能も大きく進化してきました。本記事では 2020 年末時点での TypeScript 4.1 で使える、null と undefined をどうにかするための言語機能を網羅的に紹介していきます。
+この 4 年の間に TypeScript は勢力を拡大し、JavaScript の世界でも **Null 安全** が浸透してきたことと思います。JavaScript の規格である ECMAScript は毎年の改定により機能が増え、それに合わせて TypeScript の Null 安全機能も大きく進化してきました。本記事では 2021 年 1 月時点での最新版 TypeScript 4.1 で使える、null と undefined をどうにかするための言語機能を網羅的に紹介していきます。
 
 # 読むのに必要な知識 / この記事で扱わない内容
 
@@ -16,9 +16,8 @@ published: false
   - ECMAScript 2015 程度
   - `let` `const` `() => {}` (アロー関数) などの機能を断りなく使います
   - わかんないことがあったら [JSPrimer](https://jsprimer.net) を読むといいと思います
-- 静的型と TypeScript の超基礎的な知識
-  - TypeScript を使うと JavaScript に静的型チェックを導入できます
-  - 難しい型については本記事で説明します
+- 静的型付け言語と TypeScript の超基礎的な知識
+  - TypeScript 公式ドキュメント日本語訳もしくは TSPrimer
 
 :::message
 TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript Playground](https://typescriptlang.org/play/) をおすすめします。CLI では ts-node, Deno が使えます。
@@ -177,11 +176,11 @@ Union 型は合併型とも呼ばれ、`A | B` 型は「`A` 型か `B` 型」と
 
 ![](https://storage.googleapis.com/zenn-user-upload/rs2qcg6kh5nv2i9j82exedzmdngh)
 
-Union 型は Nullish のみならず `string | number` というような使い方も可能です。JavaScript は動的型付け言語であるため 1 つの変数や引数が複数の型をとることががしばしばあり、そのようなものも含めて Union 型なら適切に型をつけることができます。同じく動的型付けの Python に型をつけるときも Union が登場するみたいです。Python では Nullable に相当する `Optional[Foo]` は `Union[Foo, None]` ^[Python の虚無値は `None` です] と同じだそうです。
+Union 型は Nullish のみならず `string | number` というような使い方も可能です。JavaScript は動的型付け言語であるため 1 つの変数や引数が複数の型をとることががしばしばあり、そのようなものも含めて Union 型なら適切に型をつけることができます。同じく動的型付けの Python に型をつけるときも Union が登場するみたいです。Python では Nullable に相当する `Optional[Foo]` は `Union[Foo, None]` と同じだそうです。
 
 ## `NonNullable<T>` でユニオン型から Nullish を除去する
 
-既存の Nullable な型を変形して Nullable でない型にしたい、という場面はよくありますが、そんな時に便利なのが `NonNullable<T>` 型です。`NonNullable<T>` は `T` から `null` `undefined` を除去した型になります^[型引数を受け取って新しい型を返す、という型を関数に見立てて __型関数__ と呼ぶこともあるみたいです。個人的には関数型と紛らわしいので型関数ではなくユーティリティ型と呼ぶことが多いです。]。
+既存の Nullable な型を変形して Nullable でない型にしたい、という場面はよくありますが、そんな時に便利なのが `NonNullable<T>` 型です。`NonNullable<T>` は `T` から `null` `undefined` を除去した型になります。
 
 ```ts
 type Foo = number | null | undefined;
@@ -189,13 +188,15 @@ type NonNullFoo = NonNullable<Foo>;
 // NonNullFoo = number
 ```
 
-TypeScript に組み込みで用意されているので、TypeScript コードなら明示的なインポートは不要で使うことができます。これは `lib.es5.d.ts` に定義することで実現されています。`lib.es5.d.ts` による `NonNullable<T>` の定義は以下です。VSCode や TypeScript Playground 上で `NonNullable` を Control-クリックして確認することもできます。
+TypeScript に組み込みで用意されているので、TypeScript のコードなら明示的なインポートは不要でいつでもどこでも使うことができます。これは `lib.es5.d.ts` に定義することで実現されています。`lib.es5.d.ts` による `NonNullable<T>` の定義は以下です。VSCode や TypeScript Playground 上で `NonNullable` を Control-クリックして確認することもできます。
 
 ```ts:NonNullableの定義
 type NonNullable<T> = T extends null | undefined ? never : T;
 ```
 
-この型は TypeScript 2.8 で追加された Conditional Types を使っています。`T extends U ? X : Y` という構文で、`T` 型が `U` 型を満たしていたら `X` 型、そうでなかったら `Y` 型に解決されます。条件演算子みたいなものです。`NonNullable<T>` においては Union distribution という挙動を使っていい感じに Union 型から `null` `undefined` を除去しています。
+この型は TypeScript 2.8 で追加された Conditional Types を使っています。Conditional という名前が示すとおり、型レベルで条件分岐ができます。`T extends U ? X : Y` という構文で、`T` 型が `U` 型を満たしていたら `X` 型、そうでなかったら `Y` 型に解決されます。`NonNullable<T>` においては Union distribution という挙動を使っていい感じに Union 型から `null` `undefined` を除去しています。
+
+型引数を受け取って新しい型を返す、という型を関数に見立てて **型関数** と呼ぶこともあるみたいです。個人的には関数型と紛らわしいので型関数ではなくユーティリティ型と呼ぶことが多いです。
 
 Conditional Types そのものの使い方は覚えておかなくても大丈夫ですが、`NonNullable<T>` はとても便利なのでぜひ使っていきましょう。Union distribution を含めた Conditional Types の詳しい情報は以下の記事が参考になります。
 
@@ -209,17 +210,30 @@ Conditional Types に限らず TypeScript の高度な型は便利なユーテ�
 
 Conditional Types では再帰も行えるので、やろうと思えばオブジェクトから再帰的に Nullish を除去する型も書けますが、複雑になるためか TypeScript 標準には入っていません。[utility-types](https://github.com/piotrwitek/utility-types) や [ts-essentials](https://github.com/krzkaczor/ts-essentials) といったライブラリの `DeepNonNullable<T>` がよさそうです。
 
+# Null or Undefined?
+
+あなたがなにか関数を書いていて、失敗を表現したいとします。`null` か `undefined` を返せばよさそうですね。それではどちらを使いますか？これはなかなか悩ましいですね。`null` と `undefined` の使い分けは開発者の間でも意見が分かれています。
+
+Facebook が主導する React では `null` と `undefined` は明確に区別されています。たとえばコンポーネントは `null` を返すことで「何も描画しない」ことを示せますが、undefined を返すことはできません。型定義上でも禁止されていますし、実行時にもエラーが発生します。
+
+```tsx
+const Valid: React.FC = () => null;
+const Invalid: React.FC = () => undefined; // ❗ Type 'undefined' is not assignable to type 'ReactElement<any, any> | null'.(2322)
+```
+
+Microsoft が中心になっている TypeScript コンパイラそのもの ([microsoft/TypeScript](https://github.com/microsoft/typescript)) の開発では `undefined` のみを使っています ([Coding guidelines - microsoft/TypeScript](https://github.com/Microsoft/TypeScript/wiki/Coding-guidelines#null-and-undefined))。ただしあくまで TypeScript コンパイラでのガイドラインであり、TypeScript の開発陣としてこれを推奨しているわけではなく、ましてや「TypeScript を使った開発ではこのガイドラインに従え」ということでは決してないので、あなたがあなたのプロジェクトでどう使うかは自由です。それを理解できなかった人がたくさんいたらしく、ガイドラインの最初にはこのことが `<h1>` のクソデカ太字で 2 回も書いてあります。
+
 ## `Nullable<T>` 型はどこ？ `number?` って書けないのはなんで？
 
-TypeScript では `NonNullable<T>` はありますが `Nullable<T>` はありません。プロジェクトによって `null` 使わないとか `undefined` 使わないといった宗派があるためのようです。`number?` と書けないのも同様の理由によるものと思われます。それに型中での `?` は現状すでに Conditional Types が使っているのでパースがつらそうです。あと `Nullable<T>` についてはそもそも `T | null` のほうが短いです。
+`NonNullable<T>` はありますが `Nullable<T>` というような型はありません。さきほど説明したとおり、プロジェクトによって `null` 使わないとか `undefined` 使わないといった宗派があるからです。そして `Nullable<T>` については `T | null` のほうが短いです。
 
-ところで、配列型なんかは `T[]` と `Array<T>` のどちらでも書けますね。あれについては、Union/Intersection 型 `P | Q` の配列は `(P | Q)[]` より `Array<P | Q>` のほうが読みやすい^[これは賛否あるかと思います] し、ネストした配列なら `Array<Array<Array<number>>>` より `number[][][]` のほうが読みやすい^[これは賛しかないかと思います]ところに使い分けのポイントがあると思います。一方で nullable の場合 `P | Q | null | undefined` とか `P & Q | null | undefined`^[union 型より intersection 型 `&` のほうが優先されます。実数の和と積の順序と同じです。] と書けます。ネストについては Union 型の規則で `A | A` は `T` にされるので `T | null | null` は `T | null` になりそもそも不可能です。
+`number?` と書けないのも同様の理由によるものと思われます。それに型中での `?` は現状すでに Conditional Types が使っているのでパースがつらそうです。また `P | Q?` はおそらく `P | Q | null | undefined` と等価になるでしょうが、これは `P | Q[]` が `P | Array<Q>` になるのと異なっていて混乱の種になると筆者は考えます。
+
+https://github.com/Microsoft/TypeScript/issues/23477
 
 Nullable のネスト可否は Null 安全言語の間でも仕様が違うところで、ざっくり言うと代数的データ型で実現してる言語はネストできますがそれ以外では不可能な場合が多いです。TypeScript は説明したとおり Union なのでネスト不可能ですが、オブジェクト型とかを駆使して代数的データ型っぽいのを模倣し、ネストできる Option データ構造を作れます。これは本筋とあまり関係がないので後で触れます。
 
 本記事中では `null` のほうを多用しているように見えるかもしれませんが、単純にスペルが長く手の動きが複雑で typo しやすい ~~`undefiend`~~ `undefined` を打つのをめんどくさがっているだけです。
-
-ちなみに TypeScript コンパイラそのもの ([microsoft/TypeScript](https://github.com/microsoft/typescript)) の開発では `undefined` のみを使っています ([Coding guidelines - microsoft/TypeScript](https://github.com/Microsoft/TypeScript/wiki/Coding-guidelines#null-and-undefined))。ただしあくまで TypeScript コンパイラでのガイドラインであり、TypeScript の開発陣として「TypeScript を使った開発ではこのガイドラインに従え」と言っているわけではないので、あなたがあなたのプロジェクトでどう使うかは自由です。ガイドラインの最初にはこのことが `<h1>` のクソデカ太字で 2 回も書いてあります。
 
 # オブジェクトの省略可能なプロパティ `prop?: T`
 
@@ -231,7 +245,7 @@ type User = {
   age?: number; // 省略可能 Optional
 };
 
-const bob = {
+const bob: User = {
   name: "Bob",
   age: 16,
 };
@@ -243,6 +257,23 @@ const alice: User = {
 ```
 
 JavaScript には「オブジェクトの存在しないプロパティにアクセスした場合 `undefined` になる」仕様があるので、`age?: number` と定義したプロパティの実際の型は `number | undefined` になります。
+
+ここで注意しなければならないのは、**プロパティが省略可能であることとプロパティが undefined との union 型になっていることは同値ではない** ということです。すなわち、
+
+```ts
+type User = {
+  name: string;
+  age: number | undefined;
+};
+```
+
+このように定義した `User` 型のプロパティ `age` は `undefined` との Union 型ですが省略可能ではありません。
+
+```ts
+const charlie = {
+  name: string, // ❗ Property 'age' is missing in type '{ name: string; }' but required in type 'User'.(2741)
+};
+```
 
 ## Mapped Types でプロパティの省略可否を操作する
 
@@ -342,7 +373,7 @@ const de: string | undefined = record.de; // string | undefined
 
 なお、このオプションは `--strict` に含まれていません。
 
-# タプルと省略可能なラベル
+# タプルと省略可能な要素
 
 TypeScript では固定長の配列をタプルとして扱います。
 
@@ -351,39 +382,27 @@ type Tp = [string, number, boolean];
 const tp: Tp = ["ea", 214, true];
 ```
 
-TypeScript 4.0 でタプル型の各要素にラベルをつけられるようになりました。このラベルはあくまで型の上だけで、実際の値にラベルを付けることはできません。
+ラベルの要素となる型名に `?` を後置するとその要素は省略可能になり、型は `undefined` との Union 型になります。この「省略可能」はオブジェクトのオプショナルなプロパティと同じ扱いです。`length` の型は `1 | 2` になります。
 
 ```ts
-type TpLabeled = [first: string, middle: number, last: boolean];
-const tp: TpLabeled = ["ea", 214, true];
+type ToStrParam1 = [number, number?];
+const a1: ToStrParam1 = [4, 10];
+const b1: ToStrParam1 = [4];
+const c1: ToStrParam1 = [4, undefined];
 ```
 
-この機能は関数の引数との相互変換のサポートとして導入されました。そのため、各要素のラベルは関数の引数として利用された時にのみ使われます。これは例えば、ラベルが違うタプル型でも型の並びが同じならまったく同じように扱えるということです。
+`?` ではなく `undefined` との Union 型にした `ToStrParam2` を用意しました。これは一見 `ToStrParam1` と同じように見えますが、`length` が `2` で固定になっているので、長さ 1 のタプルを代入することはできません。
 
 ```ts
-const tpl: TpLabeled = ["hey", 192, true];
-const tpl2: [head: string, body: number, tail: boolean] = tpl;
-```
-
-ここはオブジェクト型のキーとは大きく違う部分です。
-
-ラベルに `?` をつけるとその要素は省略可能になり、型は `undefined` との Union 型になります。この省略は完全な省略で、`length` の型は `1 | 2` になります。
-
-```ts
-type ToStrParam1 = [num: number, radix?: number];
-const a1: ToStrParam1 = [3, 10];
-const b1: ToStrParam1 = [1];
-```
-
-`?` ではなく `undefined` との Union 型にした `ToStrParam2` を用意しました。これは一見 `ToStrParam1` と同じように見えますが、`length` が `2` で固定になっています。そのため `[1]` のような値は入れることができません。
-
-```ts
-type ToStrParam2 = [num: number, radix: number | undefined];
-const a2: ToStrParam2 = [3, 10];
-const b2: ToStrParam2 = [1];
+type ToStrParam2 = [number, number | undefined];
+const a2: ToStrParam2 = [4, 10];
+const b2: ToStrParam2 = [4];
 // Type '[number]' is not assignable to type 'ToStrParam2'.
 // Source has 1 element(s) but target requires 2.(2322)
+const c2: ToStrParam2 = [4, undefined];
 ```
+
+この関係はオブジェクトの省略可能なプロパティと同じですね。
 
 # 値が nullish かを判別したい！
 
@@ -765,6 +784,15 @@ const githubName =
 ![](https://storage.googleapis.com/zenn-user-upload/14wm7izncv7vbvpuoeqm1080tmj4)
 _Excalidraw でフローチャートに起こしてみた図。縦長すぎて記事を読む邪魔になっている_
 
+Optional Chaining の解説に使った例を挙げると
+
+```ts
+if (article?.author.githubUrl != null) {
+  // articleがnullishでないことも保証されている
+  console.log(article.title);
+}
+```
+
 # Optional Chaining `?.()` で Nullish かもしれない値を関数として呼び出す
 
 以下のような値を関数として呼び出せます。
@@ -852,8 +880,6 @@ toString(num!);
 まあ、うっかり落ちると言っても非 Null 安全言語で null チェックすっぽかしてエラー落ちするのと完全に同じですからね。しかも危ない箇所が `!` で可視化されるので、どこに注意を払えばいいのかも一目瞭然です。
 
 # nullish だったらさっさと処理を打ち切りたい
-
-``
 
 ## 早期 `return` パターン - nullish なら適当な値を返してさっさと終了したい
 
