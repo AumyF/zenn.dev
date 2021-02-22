@@ -28,13 +28,13 @@ https://github.com/parcel-bundler/parcel/issues/1798
 
 # Twitter で探る
 
-これはわたしの英語語彙力がないからかもしれないが、Discord かメール上でやりとりがあったからと考えるほうが自然だろうか。そこで Twitter にて `parcel` の URL を検索してみたら答えが 1 発で見つかる。
+そこで Twitter にて `parcel` の URL を検索してみたら答えが 1 発で見つかる。
 
 https://twitter.com/MaartenBicknese/status/965611823251812353
 
 https://twitter.com/parceljs/status/992119459161694208
 
-1 つ目のツイートのリプライとわたしの英語力によれば、bundler のほうを公開する前に `parcel` を譲ってはくれまいか的なことをかけあったらしいが、当時は OK してもらえなかったそう。どうやら `parcel` はこの後に移管されたようだ。さすがに npm の仲裁が入ったとかはわからなかったが…。
+1 つ目のツイートのリプライとわたしの英語力によれば、bundler のほうを公開する前に `parcel` を譲ってはくれまいか的なことをかけあったらしいが、当時は OK してもらえなかったそう。どうやら `parcel` はこの後に移管されたようだ。さすがに npm の仲裁が入ったとかはわからなかったが、まあ Twitter じゃなくて Discord とかメールでやりとりしたからだろう。
 
 # おわりに
 
