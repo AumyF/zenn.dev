@@ -3,7 +3,7 @@ title: npmの「parcel-bundler」はv2にかけて「parcel」に移行する流
 type: tech
 emoji: 📦
 topics: [Parcel]
-published: false
+published: true
 ---
 
 Zero configuration でおなじみ、みんな大好き [Parcel](https://parceljs.org) だが、`npm i` するパッケージを覚えていらっしゃるだろうか？`parcel` だっけ？`parcel-bundler` だったかも？[チュートリアルの Installation](https://parceljs.org/getting_started.html) を見ると `npm install -g parcel-bundler` となっている。と思いきや、[次期バージョンである Parcel v2 のドキュメンテーション](https://v2.parceljs.org/getting-started/webapp/) では `npm install -D parcel@next`。
