@@ -1,5 +1,6 @@
 {
-  "name": "zenn.dev",
+  "name": "zenn-contents",
+  "private": true,
   "description": "",
   "scripts": {
     "start": "zenn preview",
@@ -14,6 +15,6 @@
   },
   "homepage": "https://github.com/aumyf/zenn.dev#readme",
   "dependencies": {
-    "zenn-cli": "^0.1.69"
+    "zenn-cli": "^0.1.79"
   }
 }
