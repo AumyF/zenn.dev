@@ -1,0 +1,15 @@
+{
+  "frontmatter": {
+    "body": [
+      "---",
+      "title: $1",
+      "type: $2",
+      "topics: [$3]",
+      "emoji:",
+      "published: false",
+      "---",
+      ""
+    ],
+    "prefix": "frontmatter"
+  }
+}
