@@ -10,5 +10,7 @@ let
   };
 in
 nodePackages // {
-  zenn-cli = nodePackages.zenn-cli;
+  zenn-cli = nodePackages.zenn-cli.override {
+    buildInputs = with pkgs; [ pkgconfig vips ];
+  };
 }
