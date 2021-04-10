@@ -3,6 +3,7 @@ title: TypeScript v4.3.0-beta 変更点
 topics: ["TypeScript"]
 type: tech
 emoji: 🌄
+published: true
 ---
 
 おーみーです。2020/04/01^[エイプリルフールではない]^[もしかしたら日本では 04/02 だったかもしれない] に TypeScript 4.3 Beta が公開されました。「Announcing TypeScript 4.3 Beta」の内容を中心に新機能を紹介していきます。
