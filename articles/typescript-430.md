@@ -332,7 +332,7 @@ declare let s1: `${number}-${number}`;
 
 declare let s2: `${number}-123`;
 
-// Type '`${number}-123`' is not assignable to type '`${number}-${number}`'.(2322)
+// Type '`${number}-123`' is not assignable to type '`${number}-${number}`'. ts(2322)
 s1 = s2;
 ```
 
@@ -428,6 +428,8 @@ Animal.foobarIndexSignature; // unknown
 
 # import 文の補完
 
+https://github.com/microsoft/TypeScript/pull/43149
+
 JavaScript の import で最大のつらいポイントは import する物体がモジュール名の前に来てしまうことです。これのおかげで
 
 ```ts
@@ -441,6 +443,8 @@ TypeScript 4.3 では `import use` ぐらいまで打つと自動インポート
 ただしこの機能を使うにはエディタ側の対応が必要らしく、現時点で使えるのは VS Code Insiders の最新版のみのようです。青いほうで使えるのはちょっと先になりそうです。そういうことなので Insiders をインストールして試してみましたが動きませんでした。[VS Code 側で Pull Request はマージされている](https://github.com/microsoft/vscode/pull/119009) ので動くはずなんですがね。まあそのうち動くでしょう。
 
 # `@link` のエディタサポート
+
+https://github.com/microsoft/TypeScript/pull/41877
 
 エディタで JSDoc 中の `@link` をクリックすると、それの定義に飛べるようになりました。現状 (2021-04-09) では VS Code のリリース版では対応していないので、Insiders 版で動作確認しました。
 
@@ -516,7 +520,7 @@ enum E {
 
 TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) はその 2 週間後の 2021-05-25 に公開される予定です。
 
-4.3 で今後予定されている機能の **一部** を記しておきます (先送りになる可能性もあります、特に investigate になってるやつはどういう実装がいいか考えてる段階のものも多いっぽいので)。
+せっかくなので、Iteration Plan から 4.3 で今後予定されている機能の **一部** を紹介しておきます (先送りになる可能性もあります、特に investigate になってるやつはどういう実装がいいか考えてる段階のものも多いっぽいので)。
 
 - インデックスシグネチャのキーの型に `symbol` やリテラル型を許容 ([Generalized index signatures](https://github.com/microsoft/TypeScript/pull/26797))
   - 4.2 から引き継がれました。
@@ -527,8 +531,8 @@ TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) はその 2 
 - プロジェクトを開始するときのわかりやすさについて再評価する ([Review the project setup experience](https://github.com/microsoft/TypeScript/issues/41580))
   - `tsc --init` で生成される tsconfig.json が巨大で物々しいので量を削って docs へのリンクを貼るようにしようぜ、という感じ
   - https://github.com/microsoft/TypeScript/issues/41580
-- `catch(e)` で `e: unknown` をデフォルトにするフラグを導入する提案 ([Investigate strictness flag for `unknown` in `catch`](https://github.com/microsoft/TypeScript/issues/41016))
+- `catch(e){}` の `e` を `e: any` でなく `e: unknown` にするフラグの提案 ([Investigate strictness flag for `unknown` in `catch`](https://github.com/microsoft/TypeScript/issues/41016))
 
 # さいごに
 
-関東地方でプログラミング、とくに関数型言語や型システムにつよいオタクがたくさんいる大学を探してるので、コメント欄か Twitter ([@aumy_f](https://twitter.com/aumy_f)) かどこか適当なところで教えていただけると助かります。
+関東地方でプログラミング、とくに Web とか関数型言語とか型システムにつよいオタクがたくさんいる大学を探してます。コメント欄か Twitter ([@aumy_f](https://twitter.com/aumy_f)) かどこか適当なところで教えていただけるといっぱい助かります。
