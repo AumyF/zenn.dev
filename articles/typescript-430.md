@@ -24,52 +24,7 @@ emoji: 🌄
 - `static` インデックスシグネチャ (`static` Index Signatures)
 - import 文での補完の改善 (Import Statement Completions)
 - `@link` タグのエディタサポート (Editor Support for `@link` Tags)
-
-# 破壊的変更
-
-## `lib.d.ts` の変更
-
-`lib.d.ts` からブラウザによる実装のない API が除去されました。対象となるのは `Account`, `AssertionOptions`, `RTCStatsEventInit`, `MSGestureEvent`, `DeviceLightEvent`, `MSPointerEvent`, `ServiceWorkerMessageEvent`, `WebAuthentication` です。これらの名前は今後は型名として自由に使うことができるでしょう。これからは `Account` も使えるようになります。
-
-```ts
-// type では、すでに存在する型名を定義することはできない
-// 4.2以下: Duplicate identifier 'Account'. ts(2300)
-type Account = {};
-
-// interface や class では、型名がかぶった場合定義がマージされる
-// 4.2 以下: エラーにはならないが、lib.dom.d.ts の定義と declaration merging して勝手にプロパティが生えてくる
-class Account {}
-```
-
-なお `WebAuthentication` が消されてますが、使っている人が少なすぎて消されたのではなく `WebAuthentication` というインターフェースが消されただけで Web Authentication API は消えてないです。というか `WebAuthentication` という名前のインターフェースが MDN 検索しても見つからないんですよね。
-
-## Union Enum を範囲外の数値と比較できなくなる / Union Enums Cannot Be Compared to Arbitrary Numbers
-
-Union Enum の値の範囲に入っていない数値と比較できなくなったみたいです。
-
-```ts
-enum E {
-  A = 0,
-  B = 1,
-}
-
-function f(e: E) {
-  // This condition will always return 'false' since the types 'E' and '3' have no overlap. ts(2367)
-  if (e === 3) {
-  }
-}
-```
-
-無効化するには `+` をつけるそうです。
-
-```ts
-enum E {
-  A = +0,
-  B = 1,
-}
-```
-
-これの検証で初めて enum 使ったんですけど挙動がよくわかりませんでした。
+- Union Enum を範囲外の数値と比較できなくなる (Union Enums Cannot Be Compared to Arbitrary Numbers)
 
 # 型引数が制御フロー解析で絞り込まれるように
 
@@ -77,7 +32,7 @@ https://github.com/microsoft/TypeScript/pull/43183
 
 アナウンスには載っていませんでしたが、TypeScript 4.3 の目玉機能といえる変更で Beta にも含まれているので紹介しておきます。
 
-`T extends string | undefined` のように `T` の制約が union 型になっている場合に「ある `T` 型の値 (ここでは `t`) が `extends string` なのか `undefined` なのか」を絞り込むことができるようになりました。^[`T` の制約が `null` `undefined` との union でかつ `t` にプロパティアクセスか関数としての呼び出しを行う場合は以前から型チェックが通っていました。https://github.com/microsoft/TypeScript/pull/15576 の挙動だと思いますが、なんでこんなことになってるのかはわかりません。もしかしてプロパティアクセス/関数呼び出しと return/関数適用って型推論の方法がまるっきり違うんですか？]。
+`T extends string | undefined` のように `T` の制約が union 型になっている場合に「ある `T` 型の値 (ここでは `t`) が `extends string` なのか `undefined` なのか」を絞り込むことができるようになりました^[`T` の制約が `null` `undefined` との union でかつ `t` にプロパティアクセスか関数としての呼び出しを行う場合は以前から型チェックが通っていました。https://github.com/microsoft/TypeScript/pull/15576 の挙動だと思いますが、なんでこんなことになってるのかはわかりません。もしかしてプロパティアクセス/関数呼び出しと return/関数適用って型推論の方法がまるっきり違うんですか？]。
 
 ```ts
 function f1<T extends string | undefined>(t: T): string {
@@ -124,7 +79,7 @@ https://github.com/microsoft/TypeScript/pull/42425
 これ知らなかったんですが、getter の返り値と setter の引数は異なる型にできなかったみたいです。
 
 ```ts
-// ↓型が通る
+// ↓型チェックが通る
 class Foo {
   #size: number = 0;
   get size() {
@@ -251,7 +206,7 @@ class Derived extends Base {
 
 # Template Literal Types の改善
 
-Template literal types、あるいは template string types の強化です。
+Template literal types、あるいは template string types の改善が 2 つ入りました。
 
 ## テンプレートリテラルへの推論
 
@@ -282,7 +237,23 @@ const hello = (n: string): `hello ${string}` => {
 > 拙訳: #41891 ですべてのテンプレートリテラル式に template literal types を導入したら、破壊的変更が大きすぎるとわかったので #42588 で取り消された。
 > https://github.com/microsoft/TypeScript/pull/43376 より
 
-TS 4.3 では破壊的変更を抑えつつテンプレートリテラルをうまく扱うため、**テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template literal type として推論される** ことになりました。逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。
+TS 4.3 では破壊的変更を抑えつつテンプレートリテラルをうまく扱うため、**テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template literal type として推論される** ことになりました。contexually typed というのは、たとえば変数宣言での型注釈、関数の引数の型、関数の返り値の型が template literal types になっているという状態です。
+
+```ts:contexually typed とはなにか？
+declare const dead: string;
+// TS 4.2: Type 'string' is not assignable to type '`un${string}`'. ts(2322)
+const foo: `un${string}` = `un${dead}`; //
+
+// TS 4.2: Argument of type 'string' is not assignable to parameter of type '`un${string}`'. ts(2345)
+fn(`un${dead}`);
+
+function fn(luck: `un${string}`): `un${string}` {
+  // TS 4.2: Type 'string' is not assignable to type '`un${string}`'. ts(2322)
+  return `un${luck}`;
+}
+```
+
+逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。
 
 ```ts
 // const hello: (n: string) => string
@@ -379,6 +350,8 @@ klass.#privateSetter = 200;
 
 # 条件式での Promise のチェック
 
+https://github.com/microsoft/TypeScript/pull/39175
+
 `Promise` を `if` とかの条件式に突っ込むとエラーが出るようになりました。`await` 忘れに効果的です。
 
 ```ts
@@ -446,7 +419,59 @@ const foo = () => {};
 ![](https://storage.googleapis.com/zenn-user-upload/yzwa71tldmvcnu22igls8omqoopz)
 ![](https://storage.googleapis.com/zenn-user-upload/9j4zgy8sqlbq0p5fdz0wiger2qhq)
 
-# 今後
+# 破壊的変更
+
+## 条件式での Promise のチェック
+
+前記参照。
+
+## `lib.d.ts` の変更
+
+https://github.com/microsoft/TypeScript-DOM-lib-generator/issues/991
+
+`lib.d.ts` からブラウザによる実装のない API が除去されました。対象となるのは `Account`, `AssertionOptions`, `RTCStatsEventInit`, `MSGestureEvent`, `DeviceLightEvent`, `MSPointerEvent`, `ServiceWorkerMessageEvent`, `WebAuthentication` です。これらの名前は今後は型名として自由に使うことができるでしょう。特に助かるのは `Account` ですね。
+
+```ts
+// type では、すでに存在する型名を定義することはできない
+// 4.2以下: Duplicate identifier 'Account'. ts(2300)
+type Account = {};
+
+// interface や class では、型名がかぶった場合定義がマージされる
+// 4.2 以下: エラーにはならないが、lib.dom.d.ts の定義と declaration merging して勝手にプロパティが生えてくる
+class Account {}
+```
+
+なお `WebAuthentication` が消されてますが、使っている人が少なすぎて消されたのではなく `WebAuthentication` というインターフェースが消されただけで Web Authentication API は消えてないです。というか `WebAuthentication` という名前のインターフェースが MDN を検索しても見つからないんですよね。
+
+## Union Enum を範囲外の数値と比較できなくなる
+
+https://github.com/microsoft/TypeScript/pull/42472
+
+Union Enum の値の範囲に入っていない数値と比較できなくなったみたいです。
+
+```ts
+enum E {
+  A = 0,
+  B = 1,
+}
+
+function f(e: E) {
+  // This condition will always return 'false' since the types 'E' and '3' have no overlap. ts(2367)
+  if (e === 3) {
+  }
+}
+```
+
+無効化するには `+` をつけるそうです。
+
+```ts
+enum E {
+  A = +0,
+  B = 1,
+}
+```
+
+# 今後の予定
 
 TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) はその 2 週間後の 2021-05-25 に公開される予定です。
 
