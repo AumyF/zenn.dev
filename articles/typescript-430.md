@@ -196,6 +196,7 @@ class Base {
 }
 
 class Derived extends Base {
+  // 「Add 'override' modifier」という quick fix が用意されるみたいです
   // This member must have an 'override' modifier because it overrides a member in the base class 'Base'. ts(4114)
   show() {}
   hide() {}
@@ -203,6 +204,46 @@ class Derived extends Base {
 ```
 
 オーバーライドするつもりはなかったのにうっかり名前がかぶって上書きされてしまっていた、というミスを防止できます。新規プロジェクトでは積極的に有効化していくべきでしょう。
+
+## `override` と他の modifier との順番
+
+`override` と その他の modifier (`async`/`readonly`/`public`/`protected`/`private`) を同時に付ける場合の順番は Beta の時点では未決定で、どちらを先頭に置いても許容されていました。その後に `public`/`protected`/`private` → `override` → `readonly` の順番でないとエラーになるよう修正されました。Nightly (`v4.3.0-dev.20210410` で確認) に反映されています。
+
+https://github.com/microsoft/TypeScript/issues/43533
+https://github.com/microsoft/TypeScript/pull/43544
+https://github.com/microsoft/TypeScript/pull/43545
+https://github.com/microsoft/TypeScript/issues/43606
+
+```ts
+class Base {
+    async asinku() { }
+    async ashinku() { }
+
+    readonly immu = 0
+    readonly imyu = 0
+
+    public paburi() { }
+    public pabuli() { }
+}
+
+class Derived extends Base {
+    override async asinku() { }
+    // ↓たぶんこっちがエラーになるよう修正されます
+    async override ashinku() { }
+
+    override readonly immu = 0;
+    // ↓Nightly: 'override' modifier must precede 'readonly' modifier. ts(1029)
+    readonly override  imyu = 0;
+
+    // ↓Nightly: 'public' modifier must precede 'override' modifier. ts(1029)
+    override public paburi() { }
+    public override pabuli() { }
+}
+```
+
+`async` の場合のみ 04/10 現在未修正です。アンケートを取った人がいましたが `override async` が優勢なので、たぶんそのとおりになると思います。
+
+https://twitter.com/DavidSherret/status/1380331297931943940
 
 # Template Literal Types の改善
 
