@@ -106,7 +106,7 @@ class Foo {
 }
 ```
 
-TS4.3 ではこの制限が撤廃されるので、後者のコードも合法になります。言うまでもないことですが、クラス定義だけでなくオブジェクトリテラルやインターフェース、オブジェクト型でも同様です。
+TS 4.3 ではこの制限が撤廃されるので、後者のコードも合法になります。もちろん、クラス定義だけでなくオブジェクトリテラルやインターフェース、オブジェクト型でも同様に使えます。
 
 ```ts:使用例
 const foo = {
@@ -124,7 +124,7 @@ foo.size = "8900";
 foo.size.toExponential();
 ```
 
-ただ、VSCode で見た限り `foo.size` をパッと確認しただけでは setter が `unknown` であることが見えませんでした (definition まで飛ばないとわからない)。`number` なのに `unknown` が代入できる、という事象が起きたときはこれを疑いましょう。
+ただ、VS Code で見た限り `foo.size` をパッと確認しただけでは setter が `unknown` であることが見えませんでした (definition まで飛ばないとわからない)。`number` なのに `unknown` が代入できる、という事象が起きたときはこれを疑いましょう。
 
 なお、わかりやすさを確保するため、**getter の返り値の型は setter の引数の型の部分型でなければならない** という制限が設けられています。
 
@@ -144,7 +144,7 @@ class Foo {
 
 https://github.com/microsoft/TypeScript/pull/39669
 
-`override` によって、そのメソッド/プロパティが基底クラスのメソッド/プロパティをオーバーライドしていることを明示できるようになりました。`override` によるオーバーライドを強制するオプション `--noImplicitOverride` も追加されています。これらの変更は TC39 や ECMAScript とは特に関係ない、TypeScript 独自の機能です。
+`override` によって、そのメソッド/プロパティが基底クラスのメソッド/プロパティをオーバーライドしていることを明示できるようになりました。`override` によるオーバーライドを強制するオプション `--noImplicitOverride` も追加されています。これらは ECMAScript とは特に関係ない、TypeScript 独自の機能です。
 
 基底になるクラス `Base` と、それを継承するクラス `Derived` を用意しました。`Derived` は `show` `hide` を (暗黙的に) オーバーライドしています。
 
@@ -187,7 +187,7 @@ class Derived extends Base {
 }
 ```
 
-新しいコンパイラオプション `--noImplicitOverride` も追加されました。その名の通り暗黙のオーバーライドを禁止し、オーバーライドするときは `override` を付けることを強制するオプションです。
+新しいコンパイラオプション `--noImplicitOverride` も追加されました。その名の通り暗黙的なオーバーライドを禁止し、`override` による **明示的な** オーバーライドを強制するオプションです。
 
 ```ts:noImplicitOverride
 class Base {
@@ -202,17 +202,17 @@ class Derived extends Base {
 }
 ```
 
-オーバーライドするつもりはなかったのにうっかり名前がかぶってオーバーライドになってしまっていた、というミスを防止できます。新規プロジェクトでは積極的に有効化していくべきでしょう。
+オーバーライドするつもりはなかったのにうっかり名前がかぶって上書きされてしまっていた、というミスを防止できます。新規プロジェクトでは積極的に有効化していくべきでしょう。
 
 # Template Literal Types の改善
 
-Template literal types、あるいは template string types の改善が 2 つ入りました。
+Template literal types、あるいは template string types の改善が 2 つ入りました。開発チームの中でも呼称が統一されてないんじゃないかと思っています。
 
 ## テンプレートリテラルへの推論
 
 https://github.com/microsoft/TypeScript/pull/43376
 
-関数でテンプレートリテラルを返す場合、返り値の型が `string` 型の値として扱われて `` Type 'string' is not assignable to type '`hello ${string}`'. ts(2322) `` になってしまうことから `as const` をつける必要がありました。
+これまでは、関数からテンプレートリテラルを返す場合、返り値の型が `string` 型の値として扱われて `` Type 'string' is not assignable to type '`hello ${string}`'. ts(2322) `` になってしまうことから `as const` をつける必要がありました。
 
 ```ts
 const hello = (n: string): `hello ${string}` => {
@@ -253,7 +253,7 @@ function fn(luck: `un${string}`): `un${string}` {
 }
 ```
 
-逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。
+逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。これによって、型推論によって `string` を返していた関数は今まで通り `string` を返すようになっています。
 
 ```ts
 // const hello: (n: string) => string
