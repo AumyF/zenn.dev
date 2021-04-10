@@ -30,7 +30,7 @@ emoji: 🌄
 
 https://github.com/microsoft/TypeScript/pull/43183
 
-アナウンスには載っていませんでしたが、TypeScript 4.3 の目玉機能といえる変更で Beta にも含まれているので紹介しておきます。
+Announcing TypeScript 4.3 Beta にも Iteration Plan にも載っていませんが、重要な変更でこの Beta にも含まれているので紹介しておきます。RC のリリースノートには載るかもしれません。
 
 `T extends string | undefined` のように `T` の制約が union 型になっている場合に「ある `T` 型の値 (ここでは `t`) が `extends string` なのか `undefined` なのか」を絞り込むことができるようになりました^[`T` の制約が `null` `undefined` との union でかつ `t` にプロパティアクセスか関数としての呼び出しを行う場合は以前から型チェックが通っていました。https://github.com/microsoft/TypeScript/pull/15576 の挙動だと思いますが、なんでこんなことになってるのかはわかりません。もしかしてプロパティアクセス/関数呼び出しと return/関数適用って型推論の方法がまるっきり違うんですか？]。
 
@@ -237,9 +237,9 @@ const hello = (n: string): `hello ${string}` => {
 > 拙訳: #41891 ですべてのテンプレートリテラル式に template literal types を導入したら、破壊的変更が大きすぎるとわかったので #42588 で取り消された。
 > https://github.com/microsoft/TypeScript/pull/43376 より
 
-TS 4.3 では破壊的変更を抑えつつテンプレートリテラルをうまく扱うため、**テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template literal type として推論される** ことになりました。contexually typed というのは、たとえば変数宣言での型注釈、関数の引数の型、関数の返り値の型が template literal types になっているという状態です。
+TS 4.3 では破壊的変更を抑えつつテンプレートリテラルをうまく扱うため、**テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template literal type として推論される** ことになりました。contextually typed というのは、たとえば変数宣言での型注釈、関数の引数の型、関数の返り値の型が template literal types になっているという状態です。
 
-```ts:contexually typed とはなにか？
+```ts:contextually typed とはなにか？
 declare const dead: string;
 // TS 4.2: Type 'string' is not assignable to type '`un${string}`'. ts(2322)
 const foo: `un${string}` = `un${dead}`; //
@@ -397,7 +397,7 @@ import { useState } from "react";
 
 TypeScript 4.3 では `import use` ぐらいまで打つと自動インポートの補完が働きはじめます。そして `useState` のような候補を確定すると、残りの `{ useState } from "react";` まで自動で打ってくれるのです。[実際に動いてる様子はリリースノートの GIF をご参照ください](https://devblogs.microsoft.com/typescript/announcing-typescript-4-3-beta/#import-statement-completions)。
 
-ただしこの機能を使うにはエディタ側の対応が必要らしく、現時点で使えるのは VS Code Insiders の最新版のみのようです。ちょうどこの間 VS Code は最新リリースが出たところなので、青いほうで使えるのはちょっと先になりそうです。そういうことなので Insiders をインストールして試してみましたが動きませんでした。[VS Code 側で Pull Request はマージされている](https://github.com/microsoft/vscode/pull/119009) ので動くはずなんですがね。まあそのうち動くでしょう。
+ただしこの機能を使うにはエディタ側の対応が必要らしく、現時点で使えるのは VS Code Insiders の最新版のみのようです。青いほうで使えるのはちょっと先になりそうです。そういうことなので Insiders をインストールして試してみましたが動きませんでした。[VS Code 側で Pull Request はマージされている](https://github.com/microsoft/vscode/pull/119009) ので動くはずなんですがね。まあそのうち動くでしょう。
 
 # `@link` のエディタサポート
 
@@ -487,8 +487,6 @@ TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) はその 2 
   - `tsc --init` で生成される tsconfig.json が巨大で物々しいので量を削って docs へのリンクを貼るようにしようぜ、という感じ
   - https://github.com/microsoft/TypeScript/issues/41580
 - `catch(e)` で `e: unknown` をデフォルトにするフラグを導入する提案 ([Investigate strictness flag for `unknown` in `catch`](https://github.com/microsoft/TypeScript/issues/41016))
-
-[Improve narrowing of generic types in control flow analysis](https://github.com/microsoft/TypeScript/pull/43183) は Iteration plan にも載ってないんですけどマージされてるし導入されるってことでいいんですかね。RC のリリースノートには乗るかもしれないです。
 
 # さいごに
 
