@@ -5,16 +5,17 @@ type: tech
 emoji: 🌄
 ---
 
-TypeScript 4.3 Beta が公開されました。
+おーみーです。2020/04/01^[エイプリルフールではない]^[もしかしたら日本では 04/02 だったかもしれない] に TypeScript 4.3 Beta が公開されました。「Announcing TypeScript 4.3 Beta」の内容を中心に新機能を紹介していきます。
 
 - [Announcing TypeScript 4.3 Beta](https://devblogs.microsoft.com/typescript/announcing-typescript-4-3-beta)
-- [TypeScript Roadmap: January - June 2021](https://github.com/microsoft/TypeScript/issues/42673)
 - [TypeScript 4.3 Iteration Plan](https://github.com/microsoft/TypeScript/issues/42762)
+- [TypeScript Roadmap: January - June 2021](https://github.com/microsoft/TypeScript/issues/42673)
 
-`npm i typescript@beta` で導入できます。バージョンは `4.3.0-beta` です。
+`npm i typescript@beta` で導入できます。バージョンは `4.3.0-beta` です。[TypeScript Playground でも試すことができます](https://www.typescriptlang.org/play?ts=4.3.0-beta)。
 
 # Beta での変更点まとめ
 
+- 型引数が制御フロー解析で絞り込まれるように (Improve Narrowing of Generic Types in Control Flow Analysis)
 - getter と setter で別々の型を書けるように (Separate Write Types on Properties)
 - `override` と `--noImplicitOverride` の追加 (`override` and the `--noImplicitOverride` Flag)
 - Tempalate string type の推論の改善 (Template String Type Improvements)
@@ -28,7 +29,7 @@ TypeScript 4.3 Beta が公開されました。
 
 ## `lib.d.ts` の変更
 
-`lib.d.ts` からブラウザによる実装のない API が除去されました。対象となるのは `Account`, `AssertionOptions`, `RTCStatsEventInit`, `MSGestureEvent`, `DeviceLightEvent`, `MSPointerEvent`, `ServiceWorkerMessageEvent`, `WebAuthentication` です。これらの名前は今後は型名として自由に使うことができるでしょう。特に重要なのは **`Account`** ですね。
+`lib.d.ts` からブラウザによる実装のない API が除去されました。対象となるのは `Account`, `AssertionOptions`, `RTCStatsEventInit`, `MSGestureEvent`, `DeviceLightEvent`, `MSPointerEvent`, `ServiceWorkerMessageEvent`, `WebAuthentication` です。これらの名前は今後は型名として自由に使うことができるでしょう。これからは `Account` も使えるようになります。
 
 ```ts
 // type では、すでに存在する型名を定義することはできない
@@ -36,11 +37,11 @@ TypeScript 4.3 Beta が公開されました。
 type Account = {};
 
 // interface や class では、型名がかぶった場合定義がマージされる
-// 4.2 以下でもエラーにはならないが、lib.dom.d.ts の定義と declaration merging して勝手にプロパティが生えてくる
+// 4.2 以下: エラーにはならないが、lib.dom.d.ts の定義と declaration merging して勝手にプロパティが生えてくる
 class Account {}
 ```
 
-あと `WebAuthentication` が消されてて一瞬焦った。WebAuthn 使ってみたいなとぼんやり思っていたのに使っている人が少なすぎてついに消されたかと思った。`WebAuthentication` というインターフェースが消されただけで Web Authentication API は消えてないです。
+なお `WebAuthentication` が消されてますが、使っている人が少なすぎて消されたのではなく `WebAuthentication` というインターフェースが消されただけで Web Authentication API は消えてないです。というか `WebAuthentication` という名前のインターフェースが MDN 検索しても見つからないんですよね。
 
 ## Union Enum を範囲外の数値と比較できなくなる / Union Enums Cannot Be Compared to Arbitrary Numbers
 
@@ -68,7 +69,57 @@ enum E {
 }
 ```
 
+これの検証で初めて enum 使ったんですけど挙動がよくわかりませんでした。
+
+# 型引数が制御フロー解析で絞り込まれるように
+
+https://github.com/microsoft/TypeScript/pull/43183
+
+アナウンスには載っていませんでしたが、TypeScript 4.3 の目玉機能といえる変更で Beta にも含まれているので紹介しておきます。
+
+`T extends string | undefined` のように `T` の制約が union 型になっている場合に「ある `T` 型の値 (ここでは `t`) が `extends string` なのか `undefined` なのか」を絞り込むことができるようになりました。^[`T` の制約が `null` `undefined` との union でかつ `t` にプロパティアクセスか関数としての呼び出しを行う場合は以前から型チェックが通っていました。https://github.com/microsoft/TypeScript/pull/15576 の挙動だと思いますが、なんでこんなことになってるのかはわかりません。もしかしてプロパティアクセス/関数呼び出しと return/関数適用って型推論の方法がまるっきり違うんですか？]。
+
+```ts
+function f1<T extends string | undefined>(t: T): string {
+  if (x) {
+    // TS 4.2:
+    // Type 'T' is not assignable to type 'string'.
+    //  Type 'string | undefined' is not assignable to type 'string'.
+    //    Type 'undefined' is not assignable to type 'string'. ts(2322)
+    // TS 4.3: Ok 🎉🚀
+    return x;
+  }
+  return "";
+}
+```
+
+Tagged union もバッチリ推論されます。
+
+```ts
+type Left<T> = {
+  kind: "left";
+  left: T;
+};
+type Right<T> = {
+  kind: "right";
+  right: T;
+};
+
+function f2<T extends Left<Error> | Right<string>>(t: T) {
+  switch (t.kind) {
+    case "left":
+      // TS 4.2: Property 'left' does not exist on type 'T'. ts(2339)
+      return `MATATABISTEP ${t.left.message}`;
+    case "right":
+      // TS 4.2: Property 'right' does not exist on type 'T'. ts(2339)
+      return `SLEEPWALK ${t.right}`;
+  }
+}
+```
+
 # getter と setter で別々の型を書けるように
+
+https://github.com/microsoft/TypeScript/pull/42425
 
 これ知らなかったんですが、getter の返り値と setter の引数は異なる型にできなかったみたいです。
 
@@ -118,9 +169,9 @@ foo.size = "8900";
 foo.size.toExponential();
 ```
 
-ただ、VSCode で見た限り `foo.size` をパッと確認しただけでは setter が `unknown` であることが見えませんでした (definition まで飛ばないとわからない)。
+ただ、VSCode で見た限り `foo.size` をパッと確認しただけでは setter が `unknown` であることが見えませんでした (definition まで飛ばないとわからない)。`number` なのに `unknown` が代入できる、という事象が起きたときはこれを疑いましょう。
 
-これ setter と getter を逆にして `foo.size: unknown` だけど `number` しか代入できない、というようにしたらすごく面倒になりそうと思って試したら、
+なお、わかりやすさを確保するため、**getter の返り値の型は setter の引数の型の部分型でなければならない** という制限が設けられています。
 
 ```ts
 class Foo {
@@ -132,11 +183,13 @@ class Foo {
 }
 ```
 
-エラーになりました。getter の返り値の型は setter の引数の型の部分型でなければならないみたいです。型引数で `get value(): T` `set value(v: U)` とするなら `T extends U` という制約が必要となります。これは一貫性を保つための意図的な制限とされています。事情がある場合は getter の上に `// @ts-expect-error` か `// @ts-ignore` を書けばよさそうです。
+型引数で `get value(): T` `set value(v: U)` とするなら `T extends U` という制約が必要となります。getter の上に `// @ts-expect-error` か `// @ts-ignore` を書くと無視できますが、これをやると「`foo.size: number` に代入しようとしたら `Type '433' is not assignable to type '1925'. ts(2322)` で型エラーになる」という挙動になってとても易しくないのでやめたほうがよいです。
 
 # `override` キーワードと `--noImplicitOverride` フラグの追加
 
-`override` によって、そのメソッド/プロパティが基底クラスのメソッド/プロパティをオーバーライドしていることを明示できるようになりました。`override` によるオーバーライドを強制するオプション `--noImplicitOverride` も追加されています。これらの変更は TC39 や ECMAScript とは特に関係ありません。
+https://github.com/microsoft/TypeScript/pull/39669
+
+`override` によって、そのメソッド/プロパティが基底クラスのメソッド/プロパティをオーバーライドしていることを明示できるようになりました。`override` によるオーバーライドを強制するオプション `--noImplicitOverride` も追加されています。これらの変更は TC39 や ECMAScript とは特に関係ない、TypeScript 独自の機能です。
 
 基底になるクラス `Base` と、それを継承するクラス `Derived` を用意しました。`Derived` は `show` `hide` を (暗黙的に) オーバーライドしています。
 
@@ -196,13 +249,15 @@ class Derived extends Base {
 
 オーバーライドするつもりはなかったのにうっかり名前がかぶってオーバーライドになってしまっていた、というミスを防止できます。新規プロジェクトでは積極的に有効化していくべきでしょう。
 
-# Template string types の改善
+# Template Literal Types の改善
 
-TypeScript 4.2 Beta で入って RC で撤回されたやつです。
+Template literal types、あるいは template string types の強化です。
 
-## テンプレートリテラルに対する推論
+## テンプレートリテラルへの推論
 
-関数でテンプレートリテラルを返す場合、返り値の型が `string` 型の値として扱われて `` Type 'string' is not assignable to type '`hello ${string}`'. ts(2322) `` しまうことから `as const` をつける必要がありました。
+https://github.com/microsoft/TypeScript/pull/43376
+
+関数でテンプレートリテラルを返す場合、返り値の型が `string` 型の値として扱われて `` Type 'string' is not assignable to type '`hello ${string}`'. ts(2322) `` になってしまうことから `as const` をつける必要がありました。
 
 ```ts
 const hello = (n: string): `hello ${string}` => {
@@ -218,7 +273,16 @@ const hello = (n: string): `hello ${string}` => {
 };
 ```
 
-のように書いても型が通るようになりました。この変更で注目に値する点は **テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template string type として推論される** という点です。逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。
+のように書いても型が通るようになりました。
+
+実は TS 4.2 Beta で **すべての** テンプレートリテラルに template literal types を適用する変更が導入されたものの、互換性の問題により[最終リリースでは撤回された](https://devblogs.microsoft.com/typescript/announcing-typescript-4-2/#reverting-template-literal-inference)、という経緯があります。すべてのテンプレートリテラルを template literal types として扱うようにすると、テンプレートリテラルを返している既存の関数の返り値がすべて書き換わってしまうからだと思われます。
+
+> In [#41891](https://github.com/microsoft/TypeScript/pull/41891) we introduced template literal types for all template literal expressions. That turned out to be too much of a breaking change, and it was reverted in [#42588](https://github.com/microsoft/TypeScript/pull/42588).
+
+> 拙訳: #41891 ですべてのテンプレートリテラル式に template literal types を導入したら、破壊的変更が大きすぎるとわかったので #42588 で取り消された。
+> https://github.com/microsoft/TypeScript/pull/43376 より
+
+TS 4.3 では破壊的変更を抑えつつテンプレートリテラルをうまく扱うため、**テンプレートリテラルが文脈によって型付けされている (_contextually typed_) ときにのみ template literal type として推論される** ことになりました。逆に言えば、**文脈によって型付けされていないときは今まで通り `string` として扱われます**。
 
 ```ts
 // const hello: (n: string) => string
@@ -227,9 +291,7 @@ const hello = (n: string) => {
 };
 ```
 
-もともと TS4.2 がなぜこのような挙動になっているのかはちゃんと追っていませんが、4.2 Beta でこの変更が導入されたものの、なんか (十中八九互換性の問題と思われます) がうまくいかなかったようで 4.2 RC では撤回された、という経緯があります。すべてのテンプレートリテラルを template string types として扱うようにすると、テンプレートリテラルを返している既存の関数の返り値がすべて書き換わってしまうからでしょうか。
-
-関数の引数が `extends string` な型引数になっている場合も「文脈」として扱われます。わざわざ型引数を取るということはリテラル型かテンプレートリテラル型を受け取りたいということなので妥当ですね。
+関数の引数が `extends string` な型引数になっている場合も「文脈」として扱われます。わざわざ型引数を取るということはリテラル型か template literal types を受け取りたいということなので妥当ですね。
 
 ```ts
 declare const s: string;
@@ -238,18 +300,20 @@ declare function f<T extends string>(t: T): T;
 f(`foobar${s}`);
 ```
 
-## Template String Types どうしでの部分型関係
+## Template Literal Types どうしでの部分型関係
 
-Template string types 同士の間での部分型関係が追加されました。
+https://github.com/microsoft/TypeScript/pull/43361
 
-いままで、template string types と string literal types の間では部分型関係がありました。
+Template literal types 同士の間での部分型関係が追加されました。
+
+いままで、template literal types と string literal types の間では部分型関係がありました。
 
 ```ts
 declare let s1: `${number}-${number}`;
-s1 = `19-24`;
+s1 = `19-25`;
 ```
 
-しかし、template string types どうしの間では部分型関係がなかったため、以下のような代入は不可能でした。
+しかし、template literal types どうしの間では部分型関係がなかったため、以下のような代入は不可能でした。
 
 ```ts
 declare let s1: `${number}-${number}`;
@@ -283,6 +347,8 @@ function test<T extends string>(s: string, n: number, b: boolean, t: T) {
 
 # ECMAScript の `#private` なメソッド、setter、getter のサポート
 
+https://github.com/microsoft/TypeScript/pull/42458
+
 [tc39/proposal-private-methods](https://github.com/tc39/proposal-private-methods) への対応です。[TypeScript 3.8 で `#private` なプロパティが実装されていました](https://qiita.com/vvakame/items/72da760526ec7cc25c2d#ecmascript-private-fields%E3%81%AE%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88) が、4.3 では `#private` なメソッド、setter、getter が使えるようになりました。
 
 ```ts
@@ -309,7 +375,7 @@ klass.#privateGetter;
 klass.#privateSetter = 200;
 ```
 
-ちなみに、`#private` 指定された物体は子クラスからも隠蔽されるので `override` とはとくに縁がありません。
+ちなみに、`#private` 指定されたプロパティは子クラスからも完全に隠蔽されるのでオーバーライドはできません。`override` を付けるとエラーになります。
 
 # 条件式での Promise のチェック
 
@@ -333,6 +399,8 @@ declare function asynchronouslyGetCondition(): Promise<boolean>;
 
 # `static` インデックスシグネチャ
 
+https://github.com/microsoft/TypeScript/pull/37797
+
 4.2 の iteration plan に入ってたのが延期されたものです。インデックスシグネチャがクラスの `static` で定義できるようになりました。
 
 ```ts
@@ -354,9 +422,9 @@ import { useState } from "react";
 
 のようなコードを素手でぺちぺち打っていくと `import {use}` らへんまで打ったところでは補完が効きません。スニペットで `"react"` を先に打っている人も多いでしょう。
 
-TypeScript 4.3 では `import use` ぐらいまで打つと自動インポートの補完が働きはじめます。そして `useState` のような候補を確定すると、残りの `{ useState } from "react";` まで自動で打ってくれるのです。[リリースノート](https://devblogs.microsoft.com/typescript/announcing-typescript-4-3-beta/#import-statement-completions) に GIF があります。
+TypeScript 4.3 では `import use` ぐらいまで打つと自動インポートの補完が働きはじめます。そして `useState` のような候補を確定すると、残りの `{ useState } from "react";` まで自動で打ってくれるのです。[実際に動いてる様子はリリースノートの GIF をご参照ください](https://devblogs.microsoft.com/typescript/announcing-typescript-4-3-beta/#import-statement-completions)。
 
-ただしこの機能を使うにはエディタ側の対応が必要らしく、現時点で使えるのは VSCode Insiders の最新版のみのようです。ちょうどこの間 VSCode は最新リリースが出たところなので、青いほうで使えるのはちょっと先になりそうです。そういうことなので Insiders をインストールして試してみましたが動きませんでした。[VS Code 側で Pull Request はマージされている](https://github.com/microsoft/vscode/pull/119009) ので動くはずなんですがね。まあそのうち動くでしょう。
+ただしこの機能を使うにはエディタ側の対応が必要らしく、現時点で使えるのは VS Code Insiders の最新版のみのようです。ちょうどこの間 VS Code は最新リリースが出たところなので、青いほうで使えるのはちょっと先になりそうです。そういうことなので Insiders をインストールして試してみましたが動きませんでした。[VS Code 側で Pull Request はマージされている](https://github.com/microsoft/vscode/pull/119009) ので動くはずなんですがね。まあそのうち動くでしょう。
 
 # `@link` のエディタサポート
 
@@ -380,12 +448,12 @@ const foo = () => {};
 
 # 今後
 
-TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) は 2 週間後の 2021-05-25 に公開される予定です。
+TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) はその 2 週間後の 2021-05-25 に公開される予定です。
 
-4.3 で今後予定されている機能の一部を記しておきます (先送りになる可能性もあります、特に investigate になってるやつはどういう実装がいいか考えてる段階のものも多いっぽいので)。
+4.3 で今後予定されている機能の **一部** を記しておきます (先送りになる可能性もあります、特に investigate になってるやつはどういう実装がいいか考えてる段階のものも多いっぽいので)。
 
 - インデックスシグネチャのキーの型に `symbol` やリテラル型を許容 ([Generalized index signatures](https://github.com/microsoft/TypeScript/pull/26797))
-  - 4.2 から先送りされました
+  - 4.2 から引き継がれました。
 - Well-known symbols の概念を削除して unique symbol として扱うように変更 ([Improve support for well-known symbols](https://github.com/microsoft/TypeScript/pull/42543))
 - パッケージインポート/エクスポートのカスタマイズ ([Package export maps](https://github.com/microsoft/TypeScript/issues/33079))
   - Node.js の実験的機能に対するサポートのようです
@@ -395,8 +463,8 @@ TypeScript 4.3.1 (RC) は 2021-05-11 に、TypeScript 4.3.2 (Final) は 2 週間
   - https://github.com/microsoft/TypeScript/issues/41580
 - `catch(e)` で `e: unknown` をデフォルトにするフラグを導入する提案 ([Investigate strictness flag for `unknown` in `catch`](https://github.com/microsoft/TypeScript/issues/41016))
 
-そういえば [Improve narrowing of generic types in control flow analysis](https://github.com/microsoft/TypeScript/pull/43183) は Iteration plan に載ってないんですけどマージされてるし導入されるってことでいいんですかね。
+[Improve narrowing of generic types in control flow analysis](https://github.com/microsoft/TypeScript/pull/43183) は Iteration plan にも載ってないんですけどマージされてるし導入されるってことでいいんですかね。RC のリリースノートには乗るかもしれないです。
 
-# 宣伝
+# さいごに
 
-関東地方で関数型言語や型システムやプログラミングにつよいオタクがたくさんいる大学を探してます。コメント欄か Twitter ([@aumy_f](https://twitter.com/aumy_f)) で教えて下さい。
+関東地方でプログラミング、とくに関数型言語や型システムにつよいオタクがたくさんいる大学を探してるので、コメント欄か Twitter ([@aumy_f](https://twitter.com/aumy_f)) かどこか適当なところで教えていただけると助かります。
