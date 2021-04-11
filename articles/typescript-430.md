@@ -1,5 +1,5 @@
 ---
-title: TypeScript v4.3.0-beta 変更点
+title: TypeScript v4.3.0-beta 変更点を網羅する
 topics: ["TypeScript"]
 type: tech
 emoji: 🌄
