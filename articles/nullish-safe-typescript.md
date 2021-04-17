@@ -6,9 +6,13 @@ emoji: 🈚
 published: false
 ---
 
-「[Null 安全でない言語は、もはやレガシー言語だ](https://qiita.com/koher/items/e4835bd429b88809ab33)」と言われて 4 年が経ちましたが、みなさんいかがお過ごしでしょうか？Null 安全してますか？それとも `undefined is not a function` とか `Cannot read property 'foo' of undefined` みたいな実行時エラーに頭を悩ませていますか？4 年間で ECMAScript の数字がいくつ上がったかご存知ですか？4 年間で TypeScript の機能がどれくらい増えてどれくらい便利になったか把握できていますか？
+「[Null 安全でない言語は、もはやレガシー言語だ](https://qiita.com/koher/items/e4835bd429b88809ab33)」と言われて 4 年が経ちましたが、みなさんいかがお過ごしでしょうか？Null 安全してますか？それともこの変化の激しい Web 業界においてレガシー呼ばわりされて 4 年も経過している Null 安全でない言語を使って `undefined is not a function` とか `Cannot read property 'foo' of undefined` みたいな実行時エラーに頭を悩ませているのでしょうか？4 年間で ECMAScript の数字がいくつ上がったかご存知ですか？4 年間で TypeScript の機能がどれくらい増えてどれくらい便利になったか把握できていますか？
 
-この 4 年の間に TypeScript は勢力を拡大し、JavaScript の世界でも **Null 安全** が浸透してきたことと思います。JavaScript の規格である ECMAScript は毎年の改定により機能が増え、それに合わせて TypeScript の Null 安全機能も大きく進化してきました。本記事では 2021 年 1 月時点での最新版 TypeScript 4.1 で使える、null と undefined をどうにかするための言語機能を網羅的に紹介していきます。
+[State of JS](https://2020.stateofjs.com/en-US/technologies/javascript-flavors/) によれば、TypeScript を使ったことのある人の割合^[「would use again」(また使うだろう) と「would not use again」(次使うことはないだろう) の合算を回答者全員で割った商です。ちなみに「never heard / 聞いたことがない・知らない」を選んだ人の割合は 2018 年以降ずっと 1%を割り込んでおり、TypeScript の認知度はほぼ 100% という結果になっています。] は、2016 年に 25% だったのが 2020 年には 78% に到達しており、TypeScript は AltJS 筆頭というポジションを超え、JavaScript を使った開発において避けては通れないものになってきています。
+
+TypeScript を導入することの利点は **静的型検査** のただ一点 ^[型定義がドキュメントになるとかエディタの補完が強く効くようになるといった利点も、広く捉えれば静的型検査があることによる利点になります。] に集約されます。静的型検査は「数値を受け取る関数にうっかり文字列を渡してしまう」ことや、「null や undefined が入っている変数にうっかりアクセスして実行時エラーが起こる」ことを阻止します。この 2 つの例のうち後者は **Null 安全** と呼ばれています。本質的に同じものをなぜ呼び分けているのかというと、これまで、静的型付け言語であっても null や undefined といった **虚無値** に対する型チェックが貧弱な (Null 安全でない) ものが多く、Null の引き起こす実行時エラーが莫大な苦痛と損害を生み出してきたからです。現在の TypeScript は静的型付けで Null 安全な言語であり、null や undefined を含めて、型の不整合による実行時エラーを強力に防止することができます。
+
+前記の記事は Null 安全でない言語をレガシーと切り捨てて Null 安全でない開発者に煽りをかけることで、Null 安全への導入を行った記事でした。しかし、当時の JS/TS の Null 安全機能が貧弱だったこともあって全体的に Kotlin と Swift に寄った記述になっており、2020 年にかけて JavaScript、TypeScript の Null 安全機能が圧倒的な進化を遂げたことにより古い情報になってしまっています。これが本記事の執筆された理由です。本記事では 2021 年 1 月時点での最新版である TypeScript 4.1 で使える、null と undefined とうまく付き合っていくための言語機能を網羅的に紹介していきます。
 
 # 読むのに必要な知識 / この記事で扱わない内容
 
@@ -16,8 +20,7 @@ published: false
   - ECMAScript 2015 程度
   - `let` `const` `() => {}` (アロー関数) などの機能を断りなく使います
   - わかんないことがあったら [JSPrimer](https://jsprimer.net) を読むといいと思います
-- 静的型付け言語と TypeScript の超基礎的な知識
-  - TypeScript 公式ドキュメント日本語訳もしくは TSPrimer
+- 静的型付け言語の基礎的な知識
 
 :::message
 TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript Playground](https://typescriptlang.org/play/) をおすすめします。CLI では ts-node, Deno が使えます。
@@ -31,44 +34,13 @@ TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript 
 - 「❗」はコンパイルエラーです。TypeScript→JavaScript のトランスパイル時に `tsc` が出力します
   - 実際に運用する前に発生し、実行時エラーを事前に告知する役割があります
 
-# ようこそ
-
-- 「今まで JavaScript を使っていた。TypeScript に入門するにあたって Null 安全が何なのか知りたい」
-  - **TypeScript の世界へようこそ！** TypeScript の Null 安全機能を学んで `undefined is not a function` `Cannot read property 'value' of undefined` を祓い尽くしましょう！
-- 「Java などの非 Null 安全な静的型付けの経験がある。Null 安全に入門したい」
-  - **Null 安全 の世界へようこそ！** 今 Null 安全言語に全移行できない人は絶対に入門しないでください。Null 安全が快適すぎて Java に戻れなくなってしまいます。そんなあなたの新しい戻る場所は Kotlin です！
-- 「Kotlin, Swift などの Null 安全な言語の経験がある。TypeScript がどんな感じの Null 安全なのか知りたい」
-  - Null 安全がお好き？なら結構、ますますお好きになりますよ。かつての TypeScript は Null 安全を推進するための機能がかなり貧弱でしたが、今や巻き返しの時です。
-
 # Null 安全とは
 
 **Null チェック (値が Null でないことの確認) を強制** することで、Null (および nil, None などのいわゆる虚無値) による **実行時エラー** を起こさせない仕組みのことです。
 
-「無効かもしれない値」を型で表現する、というアイデアは Option や Maybe と呼ばれ、ML, Haskell, Elm, PureScript, OCaml などの関数型言語では長く使われてきました。それが近年では Swift, Rust, Kotlin, Dart といったマルチパラダイム言語に導入されて注目されてきたわけです。Null 安全の中にはみんな大好きモナドの一種になっているものがあるようですが、筆者が関数型プログラミングに詳しくないので関数型周りの話には深入りしません。
+「無効かもしれない値」を型で表現する、というアイデアは OCaml, Haskell, Elm といった関数型言語においてはそう新しいものではありません。それが最近では Swift, Rust, Kotlin, Dart といったイカしたマルチパラダイム言語に導入されて一躍注目されるようになったわけです。TypeScript も Null 安全を搭載した、最近のイカしたマルチパラダイム言語です。イカしたマルチパラダイム言語だと思います。型がついた以外 JavaScript と変わりないので違うかもしれない。
 
-TypeScript にもバージョン 2.0 で Null 安全が導入されました。JavaScript には `null` の他に `undefined` という虚無値があるので「Null/Undefined 安全」とか呼んだほうがいいかもしれませんが、同一視してもさほど困らない物事をわざわざ冗長な表現で区別して呼ぶのは無駄なので単に Null 安全と呼ぶことにします。
-
-Null 安全を有効化するにはコンパイラオプション `strictNullChecks` を設定します。このオプションは各種の厳格なチェックを有効化する `strict` オプションにも含まれています。`tsc --init` で生成される `tsconfig.json` も `strict: true` なので、普通にセットアップすれば TypeScript は Null 安全な状態になっているはずです。フレームワークとかテンプレートによっては `strict: false` な `tsconfig.json` がデフォルトになってるのも存在はしますが、新規のプロジェクトなら `strict` を有効化して開発することをおすすめします。
-
-```json:strictNullChecksだけ有効化する
-{
-  "compilerOptions": {
-    "target": "es2019",
-    "module": "commonjs",
-    "strictNullChecks": true
-  }
-}
-```
-
-```json:strictで各種チェックを有効化する
-{
-  "compilerOptions": {
-    "target": "es2019",
-    "module": "commonjs",
-    "strict": true
-  }
-}
-```
+JavaScript には `null` の他に `undefined` という虚無値があるので「Null/Undefined 安全」とか呼んだほうがいいかもしれませんが、同一視してもさほど困らない物事をわざわざ冗長な表現で区別して呼ぶのは無駄なので単に Null 安全と呼ぶことにします。
 
 ## ぬるぽ
 
@@ -86,14 +58,14 @@ str.toUpperCase();
 
 ## 静的型付けだけど Null 安全じゃない
 
-`strictNullChecks` とか関係なく TypeScript で変数 `str` に `string` という型注釈をつけると、 `number` などの関係ない型の値を代入することは不可能になります。静的型付け言語としてみれば普通の挙動ですね。
+TypeScript で変数 `str` に `string` という型注釈をつけると、 `number` などの関係ない型の値を代入することは不可能になります。Null 安全とかは関係なく、静的型付け言語としては当たり前の挙動です。これで型エラーにならなかったら静的型の意味がないです。
 
 ```ts:Null安全じゃないTypeScript
 const str: string = 42;
 // ❗ Type 'number' is not assignable to type 'string'. (2322)
 ```
 
-ですが、`strictNullChecks` が無効な (**Null 安全でない**) 状態では、`string` 型の変数に `null` `undefined` を代入することができます。**できてしまいます**。`null` や `undefined` が変数に入った状態でメソッドを呼び出したらどうなるかはもはや言うまでもありません。
+ですが、**Null 安全でない** 状態では、`string` 型の変数に `null` `undefined` を代入することができます。**できてしまいます**。`null` や `undefined` が変数に入った状態でメソッドを呼び出したらどうなるかはもはや言うまでもありません。
 
 ```ts
 const str: string = null;
@@ -107,9 +79,37 @@ str.toUpperCase();
 `T` 型の値に `null` を代入できる、という壮大な誤りについては『[null 安全を誤解している人達へのメッセージ - Qiita](https://qiita.com/omochimetaru/items/ee29d4c6eb0d78f02b15#%E6%84%8F%E8%A6%8B-null%E5%AE%89%E5%85%A8%E3%81%8C%E3%81%9D%E3%82%93%E3%81%AA%E3%81%AB%E7%B4%A0%E6%99%B4%E3%82%89%E3%81%97%E3%81%84%E3%81%AA%E3%82%89%E3%81%9D%E3%81%AE%E5%8F%8D%E9%9D%A2%E9%AB%98%E3%81%84%E3%82%B3%E3%82%B9%E3%83%88%E3%81%8C%E3%81%82%E3%82%8B%E3%81%AF%E3%81%9A%E3%81%A0%E7%94%9F%E7%94%A3%E6%80%A7%E3%81%8C%E4%B8%8B%E3%81%8C%E3%82%8B%E3%81%AF%E3%81%9A%E3%81%A0)』が詳しいです (動的型付け言語の JavaScript とはあまり重ならない話もありますが)。
 :::
 
-## 型安全かつ Null 安全
+## Null 安全を有効化する
 
-`--strictNullChecks` を有効にし、**Null 安全になった** TypeScript で同じコードを実行すると、コンパイルエラーになります。Null 安全な TypeScript では、もはや `null` は `string` 型ではありませんから、`string` 型の変数に `null` を代入することはできなくなりました。この状態の `string` は null を含まないので **Null 非許容型** と呼ばれます。
+それでは満を持して Null 安全を導入します。TypeScript では後方互換性の都合^[`strictNullChecks` は TypeScript 2.0 で導入されたもので、それまでの TypeScript は Java 同様ガバガバ型検査の Null 安全でない言語でした。新しい型チェックをデフォルト有効のオプトアウト方式にすると既存のコードベースが TypeScript アップグレードのたびにオプトアウトを設定しなければならなくなるので仕方がないといえば仕方がないです。] で Null 安全はオプションになっています。`tsconfig.json` の `compilerOptions` で `strictNullChecks` を `true` にしましょう。
+
+```json:tsconfig.json
+{
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
+}
+```
+
+各種の厳格なチェックを有効化する `strict` オプションが設定されていれば `strictNullChecks` も一緒に有効になります。
+
+```json:tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+`tsc --init` で生成される `tsconfig.json` も `strict: true` なので、普通にセットアップすれば TypeScript は Null 安全な状態になっているはずです。フレームワークとかテンプレートによっては `strict: false` な `tsconfig.json` がデフォルトになってるのも^[Next.js のことを言っている] 存在はしますが、新規のプロジェクトなら `strict` を有効化して開発するとより型安全になるのでおすすめです。
+
+なお、これらのコンパイラオプションは `tsc` コマンドのオプションとして指定することもできます。
+
+```shell
+tsc --strictNullChecks
+```
+
+`--strictNullChecks` を有効にし、**Null 安全になった** TypeScript で先程のコードを実行すると、型エラーになります。Null 安全な TypeScript では、`null` は `string` 型ではありませんから、`string` 型の変数に `null` を代入することはできません。この状態の `string` は null を含まないので **Null 非許容型** あるいは **Non-Nullable** と呼ばれます。
 
 ```ts
 const str: string = null;
@@ -117,7 +117,7 @@ const str: string = null;
 str.toUpperCase();
 ```
 
-`str` に `null` を代入したいときは `null` との Union 型をとります。これは `string` 型の値か `null` を割り当てることができる型です。`null` を許容するので **Null 許容型** 、あるいは **Nullable** とも呼びます。
+`str` に `null` を代入したいときは `null` との **Union 型** にします。Union 型は「`string` **または** `null`」と読み下すことができます。`string` 型の値、**または** `null` を割り当てることができる型です。`null` を許容するので **Null 許容型** 、あるいは **Nullable** とも呼びます。
 
 ```ts
 const str: string | null = null;
@@ -210,9 +210,11 @@ Conditional Types に限らず TypeScript の高度な型は便利なユーテ�
 
 Conditional Types では再帰も行えるので、やろうと思えばオブジェクトから再帰的に Nullish を除去する型も書けますが、複雑になるためか TypeScript 標準には入っていません。[utility-types](https://github.com/piotrwitek/utility-types) や [ts-essentials](https://github.com/krzkaczor/ts-essentials) といったライブラリの `DeepNonNullable<T>` がよさそうです。
 
+TypeScript 標準で入ってないほど複雑な型ということは扱いが困難であるということでもあります。関数の返り値などに設定するとまっとうな手段で型を合わせることが困難 (`as` が必要) になる場合があります。
+
 # Null or Undefined?
 
-あなたがなにか関数を書いていて、失敗を表現したいとします。`null` か `undefined` を返せばよさそうですね。それではどちらを使いますか？これはなかなか悩ましいですね。`null` と `undefined` の使い分けは開発者の間でも意見が分かれています。
+あなたがなにか関数を書いていて、失敗を表現したいとします。JavaScript では一般的には `null` か `undefined` を返せばよさそうですが、それではどちらを使いますか？これはなかなか悩ましいですね。`null` と `undefined` の使い分けは開発者の間でも意見が分かれている問題です。
 
 Facebook が主導する React では `null` と `undefined` は明確に区別されています。たとえばコンポーネントは `null` を返すことで「何も描画しない」ことを示せますが、undefined を返すことはできません。型定義上でも禁止されていますし、実行時にもエラーが発生します。
 
@@ -222,6 +224,27 @@ const Invalid: React.FC = () => undefined; // ❗ Type 'undefined' is not assign
 ```
 
 Microsoft が中心になっている TypeScript コンパイラそのもの ([microsoft/TypeScript](https://github.com/microsoft/typescript)) の開発では `undefined` のみを使っています ([Coding guidelines - microsoft/TypeScript](https://github.com/Microsoft/TypeScript/wiki/Coding-guidelines#null-and-undefined))。ただしあくまで TypeScript コンパイラでのガイドラインであり、TypeScript の開発陣としてこれを推奨しているわけではなく、ましてや「TypeScript を使った開発ではこのガイドラインに従え」ということでは決してないので、あなたがあなたのプロジェクトでどう使うかは自由です。それを理解できなかった人がたくさんいたらしく、ガイドラインの最初にはこのことが `<h1>` のクソデカ太字で 2 回も書いてあります。
+
+null と undefined の 2 つの使い分けが便利な場合もあります。
+
+```ts
+const map = new Map<string, number | null>();
+
+const foo = map.get("foo"); // foo: number | null | undefined
+
+switch (foo) {
+  case null: {
+    console.log("値がない");
+    break;
+  }
+  case undefined: {
+    console.log("フィールドがない");
+    break;
+  }
+}
+```
+
+この例ではハッシュマップ `map` に格納されているデータ自体は `number | null` です。その値を取得する `get()` メソッドは指定したキーが存在しないとき `undefined` を返します。これにより、`null` はデータ上での `null`、`undefined` は値の取得時にキーが存在しない、という別個のものを表しています。
 
 ## `Nullable<T>` 型はどこ？ `number?` って書けないのはなんで？
 
@@ -234,6 +257,458 @@ https://github.com/Microsoft/TypeScript/issues/23477
 Nullable のネスト可否は Null 安全言語の間でも仕様が違うところで、ざっくり言うと代数的データ型で実現してる言語はネストできますがそれ以外では不可能な場合が多いです。TypeScript は説明したとおり Union なのでネスト不可能ですが、オブジェクト型とかを駆使して代数的データ型っぽいのを模倣し、ネストできる Option データ構造を作れます。これは本筋とあまり関係がないので後で触れます。
 
 本記事中では `null` のほうを多用しているように見えるかもしれませんが、単純にスペルが長く手の動きが複雑で typo しやすい ~~`undefiend`~~ `undefined` を打つのをめんどくさがっているだけです。
+
+# Union 型と制御フロー解析
+
+Null 安全言語では Null を代入できる型 (Null 許容型) と Null を代入できない型 (Null 非許容型) を明確に区別します。Null 許容型は Null チェックを行ってはじめて Null 非許容型として扱えるようになります。これを言い換えれば Null 安全な言語には **コード中の Null チェックを発見して変数を適切な型に変更する** 機能が備わっているということになります。
+
+TypeScript は `if` `switch` などの制御構造から Union 型の変数をより詳細な型に絞り込む機能 (**制御フロー解析**) を備えています。TypeScript の Nullable 型は `string | null | undefined` のような Union 型ですからもちろん制御フロー解析が働きますし、Nullable 以外の `string | number` のような Union 型にも同じように働きます。
+
+代表的な Null チェックは上述したような `if` での比較です。
+
+```ts:Nullチェックして文字列を順番反転して返す関数
+function nullCheckReverse(str: string | null | undefined) {
+  if (str !== null && str !== undefined) {
+    return str.split("").reverse().join("");
+  }
+}
+```
+
+「null でも undefined でもない」という条件によって、`str.split` を呼び出すことができています。
+
+ところでこの関数には返り値の型シグネチャがありませんが、返り値の型は何になるでしょうか？`if` の条件に合致した場合は `string` が返っていますが、null や undefined であった場合は `return` に到達しないまま関数が終わるので、返り値は `undefined` になります。したがってこの関数の返り値の型は `string | undefined` になります。
+
+null と undefined をまとめて扱うのに いちいち `str !== null && str !== undefined` と書くのは面倒ですね。これを一気に書くショートハンドをご紹介します。
+
+```ts:Nullチェックして文字列を順番反転して返す関数
+function nullCheckReverse(str: string | null | undefined) {
+  if (str != null) {
+    return str.split("").reverse().join("");
+  }
+}
+```
+
+`if` の条件部分で非厳密不等価演算子 `!=` を使用しています。`if` の中で `str.split("")` ができていることからわかるように、**`str != null` は null または undefined でないとき true になります**。
+
+非厳密等価演算子 `==` `!=` のガバガバな挙動は JavaScript の闇要素としてしばしばネタにされています。左右のオペランドで型が合わない場合 _親切にも_ 暗黙的な型変換を行ってから等価判定してくれるからです。普通はそんなおせっかいは不要なのでわざわざ 1 タイプ多い厳密等価演算子 `===` `!==` を打たねばならないのですが、null チェックの場合は厳密でないことが逆に便利で、具体的に言うと `null == undefined` が `true` になることを利用して nullish のチェックを簡単にできます。
+
+```js
+null == undefined; // => true
+null === undefined; // => false
+```
+
+これは null と undefined を同時にチェックできる非常に重要なテクニックです。`==` `!=` を許さない ESLint の推奨設定でさえ null との比較だけは例外的に通してくれます。
+
+## ガード節
+
+ガード節 (guard clause) は `return` `throw` による脱出を使って条件分岐のネストを浅くするテクニックです。先程の関数 `nullCheckReverse` の例を上げてみましょう。あの関数は返り値の省略を行っていましたが、返り値を明示するとこのようになります。
+
+```ts
+function nullCheckReverse(str: string | null | undefined) {
+  if (str != null) {
+    return str.split("").reverse().join("");
+  } else {
+    return undefined;
+  }
+}
+```
+
+`if` がある分ネストが深く、異常値の処理が後回しになっているのであまり読みやすくありません。ここで、`str` が nullish だったら undefined を返して関数を終了するように書き換えます。
+
+```ts
+function nullCheckReverse(str: string | null | undefined) {
+  if (str == null) return undefined;
+  // ここより下では str: string
+  return str.split("").reverse().join("");
+}
+```
+
+異常値の処理を先に行うことで、本質的なロジックに集中できる環境が整いました。
+
+三項演算子に書き換えられる程度の関数だと微妙ですが、`n` の Null チェック後が長い場合にとくに効果が高いです。
+
+条件演算子 (三項演算子) を使うこともできます。
+
+```ts
+const nullCheckReverse = (str: string | null | undefined) =>
+  str == null ? undefined : str.split("").reverse().join("");
+```
+
+## `throw` - nullish だったら例外を投げたい
+
+`return` と同じように `throw` でエラーを投げ (ることで大域脱出を行っ) てもしっかり型推論されます。`return` との違いは
+
+- 関数の外でも使える
+- 返り値のことを考えなくてもよい
+- `catch` しそこねるとアプリケーションがまるごと落ちる
+
+の 3 つです。
+
+```ts:数値の平方を返し、nullishだった場合はthrowする
+const square = (n: number | null | undefined): number => {
+  if (n == null) {
+    throw new Error();
+  }
+  return n * n;
+};
+```
+
+「実行時エラーが飛んでる時点で Null 安全でない状態とそう変わらないのでは？」と思われるかもしれませんが、「nullish だったらエラーが起きても構わない」状態に比べると「nullish だったら問答無用でエラーにする」 `throw` のほうが行儀はいいとも考えられます。算術演算など、nullish だったとしてもエラーが発生しない処理の場合ならなおさらです。
+
+## ループや再帰 で Null チェック
+
+あまり出番があるかはわかりませんが、ループを行う `while` `for` も条件分岐を含んでいるので制御フロー解析の対象になります。
+
+*実践的な例*として数値の平方を返し、nullish を渡す不届き者には無限ループにより負荷をかける関数を定義します。
+
+```ts:間違えてもプロダクションで使わないように
+function square (n: number | undefined) {
+  for (; n == null;);
+
+  return n ** 2;
+}
+```
+
+どんなループでも再帰に書き換えることが知られています。ループ構文に条件分岐が含まれていることを示すために、再帰による実装例も載せておきます。
+
+```ts
+function square(n: number | null | undefined): number {
+  return n == null ? square(n) : n ** 2;
+}
+```
+
+再帰が絡むと返り値が推論できなくなるので注釈を書いています。
+
+冗談はともかくとして、`for` `while` を使った実用的な null チェックコードをご存知の方はどうぞコメントください。
+
+## `never` を返す関数
+
+TypeScript の `never` 型は値がない型です。集合で言うと空集合 $\emptyset$ に相当します。空集合は元が存在しない、つまり濃度 0 の集合で、それと同じように `never` 型の値は存在しません。変数が `never` 型になったらその部分のコードは実行されません。引数に `never` 型の値をとる関数は呼び出すことができません。`never` 型の値を返す関数は値を返しません。
+
+`null` 型、`undefined` 型との混同にご注意ください。`null` 型は `null` 値、`undefined` 型は `undefined` 値、それぞれ 1 つだけの値をもつ型です。
+
+たとえばある変数が `never` に制御フロー解析でキャストされたら、その部分のコードは **型システム上実行されることがありえない** ということを表しています。
+
+```ts
+(n: number) => {
+  if (n == null) {
+    // n: never
+  }
+};
+```
+
+`n` は絶対数値なのだから `n == null` が true になって if の中が実行されることはありえません。ありえないので never になっています。
+
+never を返す関数は **関数が正常に終了して値を返すことがありえない** ことを表します。たとえば必ずエラーを投げる関数は呼び出されたら期待通りにエラーを投げ、呼び出し元に戻って `catch` に捕まるまで次々に関数を抜けていきます。正常終了して返り値をくれることはありえません。なので `never` が返り値にきます。
+
+```ts
+const panic = (e: unknown) => {
+  throw e;
+};
+// panic: (e: unknown) => never
+```
+
+Node.js ではプログラムを終了するのに `process.exit()` が使えます。このメソッドも呼び出されたらプロセスが終了するので後続のコードは実行されません。したがって返り値は `never` です。
+
+`never` は制御フロー解析に影響を与えることができます。たとえば Node.js で引数が足りないとき終了コード 1 でプロセスを終了させたいとします。
+
+```ts
+const argv1 = process.argv[1]; // (string | undefined)[]
+
+if (argv1 == null) {
+  console.error("Not enough arguments");
+  process.exit(1); // ここでneverが返る => 後続のコードは実行されない
+}
+
+// ここ以降ではargv1: string
+```
+
+`process.exit(1)` でプロセスは終了コード 1 を返して終了するので後続の処理は実行されません。これは undefined である可能性を排除したことになります。結果的に下の方では `argv1` が `string` に推論されました。
+
+# 値が nullish かを判別したい！
+
+`if` や `switch` や条件演算子 `?:` を使って Null チェックする場合、条件部分に真偽値を入れなければいけません、じゃあどうやって nullish か否かを判定したものだろう、という話題です。
+
+## `typeof` 演算子と歴史的経緯
+
+`typeof 変数` は変数の型を表す文字列を返します。文字列と聞くと不安な気持ちになるかもしれませんが、`typeof` の返り値は `"string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function"` という文字列リテラル型の Union 型になっているのでうっかりタイポしたらちゃんと型が合わずエラーが出ます。
+
+```ts
+(n: number | string | undefined) => {
+  switch (typeof n) {
+    case "number": {
+      // ここではnはnumber
+    }
+    case "string": {
+      // ここではnはstring
+    }
+    default: {
+      // ここではnはundefined
+    }
+  }
+};
+```
+
+歴史的経緯により `typeof null === "object"` となることに注意してください。`if (typeof foo === "object")` でチェックすると `object | null` 型に推論されます。
+
+> JavaScript の最初の実装では、JavaScript の値は型タグと値で表現されていました。オブジェクトの型タグは `0` で、`null` は NULL ポインター (ほとんどのプラットフォームで `0x00`) として表されていました。その結果、`null` はタグの型として `0` を持っていたため、`typeof` の戻り値は `"object"` です。([リファレンス](http://www.2ality.com/2013/10/typeof-null.html))
+> ECMAScript の修正案が (オプトインを使用して) 提案されましたが、[却下されました](https://web.archive.org/web/20160331031419/http://wiki.ecmascript.org:80/doku.php?id=harmony:typeof_null)。それは `typeof null === 'null'` という結果になるものでした。
+
+https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/typeof#typeof_null
+
+## `instanceof` 演算子
+
+`typeof` では `Function` 以外のオブジェクトは全て `'object'` になり (さらに `null` も混入してしまい) ますが、`foo instanceof Foo` なら適当なクラスのインスタンスであるかを確認できます^[厳密にはクラスじゃなくコンストラクタだと思います]。nullish はどのクラスのインスタンスでもないので null チェックになります。
+
+```ts
+const localeStr = (date?: Date) => {
+  if (date instanceof Date) {
+    date.toLocaleString("jp");
+  }
+};
+```
+
+## nullish は falsy だから/だけど
+
+`null` `undefined` は **falsy** な値なので、真偽値に変換すると `false` になります。
+
+```ts
+Boolean(null); // => false
+Boolean(undefined); // => false
+```
+
+falsy な値は boolean 型の `false`、number 型の `0` `-0` `NaN`、bigint 型の `0n`、string 型の `""`、そして `null` `undefined` の 8 つです。
+
+https://developer.mozilla.org/ja/docs/Glossary/Falsy
+
+オブジェクトは全て truthy なので、`function | undefined` や `Klass | null | undefined` といった `truthyな値しかない型 | null | undefined` の形をしたユニオン型は false だった時点で null か undefined と推論でき、条件式を少し短くできます。
+
+```ts
+declare const date: Date | null;
+
+if (date) {
+  date.toLocaleTimeString("ja"); // date: Date
+}
+
+// --------------------------
+
+if (date != null) {
+  date.toLocaleTimeString("ja"); // date: Date
+}
+```
+
+ちょっと便利というか「JavaScript 理解ってる」感を演出できますが、前述したように falsy な値は null と undefined 以外にもあることに注意してください。number 型では `0` `-0` `NaN` が、string 型では `''` (空文字列) が、そして boolean 型では当然ですが `false` が falsy になるため、このショートハンドをうっかり使ってしまうと 0 や空文字列が来たときに Nullish 用の (つもりで書いた) コードが走ってしまいます。
+
+```ts
+const fn = (n: number | undefined) => {
+  if (n) {
+    return 2 + n;
+  }
+  throw new Error(`${n}`);
+};
+
+fn(0); // 💥 Error: 0
+```
+
+これでバグを埋め込むとちょっと恥ずかしいですね。ちなみに下側の行では `n` を `0 | undefined` ^[`NaN` も number 型かつ falsy ですが、[`NaN` にはリテラル型がない](https://github.com/microsoft/TypeScript/issues/15135) のでこのような不完全な推論になっています。] に推論しますから、マウスホバーすると出てくる型情報をちゃんと見れば気付けるかもしれません。
+
+# カスタム型ガード
+
+## `is` カスタム型ガード - Nullish かどうか判別する関数がほしい
+
+いままで `foo != null` というような式を `if` などの条件に書いてきました。この処理は正攻法では関数に切り出すことができません。
+
+```ts
+const notNullish = (foo: unknown) => foo != null;
+
+(str: string | null | undefined) => {
+  if (notNullish(str)) {
+    str.codePointAt(0); // ❗ Object is possibly 'null' or 'undefined'.(2533)
+    //
+  }
+};
+```
+
+これは「関数の中身までチェックしていると推論が追いつかない」という、制御フロー解析の限界によるものです。推論が無理なので我々人間がコンパイラ様に畏れながら「この関数が `true` を返したなら `foo` は Nullish ではない」と明示してさしあげなければなりません。それが `is` です。関数の返り値の位置で `foo is T` という注釈を書き、`foo` が `T` 型であると扱ってほしいときは `true`、そうでないときは `false` を返します。
+
+```ts
+const notNullish = <T extends {}>(foo: T | null | undefined): foo is T =>
+  foo != null; // 👈
+
+(str: string | null | undefined) => {
+  if (notNullish(str)) {
+    str.codePointAt(0);
+    //
+  }
+};
+```
+
+`unknown` のままだと表現できないのでジェネリクスを生やしました。ちなみに今回は Nullish を排除した型を `T` にしていますが、返り値の型を `NonNullable<T>` にして `<T>(foo: T): foo is NonNullable<T>` というシグネチャに書き換えても大丈夫です。
+
+`is` で言っている内容はあくまで人間がそう言っているだけであって、実際に「この関数が `true` だったら `foo` は Nullish でない」ということはコンパイラはチェックしてくれません ^[返り値が `boolean` か否かはちゃんとチェックします]。コードで嘘をつかないようにしましょう。といっても今回詳しくチェックするまでもありませんが。
+
+## `asserts` - `throw` や `never` でのチェックを関数に切り出したい
+
+`if` を使ったチェックの条件部分を関数に切り出すのが `is` なら `asserts` は `throw` や `never` でのチェックを切り出せるようにします。`asserts foo is U` は「この関数が何らかの値を返したら `foo` は `U` 型として扱っていいよ」という意味です。
+
+何らかの値を返さない場合というのは例えば、
+
+- エラーが `throw` された
+- `process.exit()` などでコードの実行が終了した
+
+という場面です。
+
+引数が Nullish だった場合は `throw` する (ので、正常に関数が終了したら引数は `null` でも `undefined` でもないと推論させる) 関数を書きました。
+
+```ts
+const assertsNonNull = <T>(foo: T): asserts foo is NonNullable<T> => {
+  if (foo == null) {
+    throw new TypeError("assertsNonNullがnullishを受け取った");
+  }
+};
+```
+
+`throw` の例で出した `square` を簡単に書けるようになります。
+
+```ts
+const square = (n: number | null | undefined): number => {
+  assertsNonNull(n);
+  return n * n;
+};
+```
+
+`is` と同じように、`asserts` においてもアノテーションと実装の整合性はプログラマが責任を持ちます。
+
+## コンマ演算子 `,` - `asserts` Null チェックと値の使用を 1 つの式にしたい
+
+**あなたはコンマ演算子を知っていますか？** カンマで区切った複数の式を左から評価し、最後の式の値を返します。シンタックスエラーとかでたまに見かけるかもしれません。
+
+```ts
+let a = 0;
+let b = (a++, a * 2); // b => 2;
+```
+
+末尾以外の式は基本的に副作用を起こすものが選ばれるでしょう。再代入、インクリメント、デクリメント、 `console.log()` などの副作用持ち関数、等々。そして `asserts` 型述語をもつ関数にも (TypeScript の型システム上の) 副作用があります。つまり、コンマ演算子を使うと `asserts` 関数による Null チェックとチェック済みの変数を使う式を 1 つの式としてまとめることができます。
+
+```ts:assertsNonNull() が定義済みだと思って読んでください
+const square = (n: number | null | undefined): number => (assertsNonNull(n), n * n);
+```
+
+この使い方、コンマ演算子の知名度が低すぎたのかごく最近まで TypeScript の推論対象になっていませんでした。Issue ができたのが今年の 10 月で [microsoft/TypeScript#41264: Assertions do not narrow types when used as operand of the comma operator.](https://github.com/microsoft/TypeScript/issues/41264) 修正が取り込まれたのが現時点の最新版である 4.1 です。
+
+参考: [asserts で assert 関数 - Qiita](https://qiita.com/sugoroku_y/items/bd82009001973ddfa3d4)
+
+# 「Nullish 以外の値」を表す型
+
+`null` `undefined` 以外ならどんな値でもいい、という場合には `{}` 型か `Object` 型を使います。`{}` は「プロパティを 0 個以上もつ型」、`Object` は「`Object` のインスタンス」です。字面での意味はまるっきり違いますがこの 2 つは本質的に同じ型です。
+
+`{}` 型は JS の空のオブジェクトリテラル `{}` が指す値の型です。しかし TypeScript の型システムは構造的部分型なので「プロパティを 0 個以上もつオブジェクト」という解釈がなされ、`3` などのプリミティブ値も含めたあらゆる非 nullish 値が代入できます。
+
+```ts
+let rularula: {} = {};
+rularula = 3;
+rularula = () => {};
+rularula = "";
+```
+
+:::details プリミティブと構造的部分型についてもっと詳しく
+`length` というプロパティをもっている型を定義します。
+
+```ts
+interface Length {
+  length: number;
+}
+```
+
+数値型の `length` プロパティをもつ値はわりと存在します。
+
+```ts
+const arr: Length = [1, 3, 5];
+arr.length; // => 3
+
+const fun: Length = (n: number) => n ** 2;
+fun.length; // => 1
+
+const str: Length = "Hello";
+str.length; // => 5
+```
+
+`"Hello"` はプリミティブですがオブジェクトと同様に `length` にアクセスできるので `Length` を満たす値として扱えます。
+
+:::
+
+`Object` 型は「JS の組み込みオブジェクト `Object` のインスタンス (と同等の型)」を表します。TypeScript の値はプリミティブ含めてすべて `Object.prototype` を継承している `Object` のインスタンスなのでやはり nullish 以外ならなんでも代入できます。`Object` を継承しない値を `Object.create(null)` で作ることもできますが **TypeScript でそれの型を表現する手段がない** ので TypeScript に飼われている限りは気にする必要はありません。
+
+それで意気揚々と `{}` を使うと `@typescript-eslint` の推奨設定では「`{}` `Object` は使うな」という怒られが発生してしまいます。「何らかの (プリミティブでない) オブジェクト」を表す正しい型は `object` なのですが、これを知らないと誤って `Object` `{}` を使ってしまいがちなのでこういう設定になっているものと思われます。これがウザい場合は `@typescript-eslint/ban-types` を無効化するか、`{}` とほぼ等価な型 `boolean | string | number | bigint | symbol | object` を外延的に書いてゴリ押すとよいです (実はこちらのほうが型推論する上で有利に働くことがあります)。
+
+# `unknown` 型は Nullish を内包している
+
+`unknown` 型はトップ型とも呼ばれます。部分型関係の頂点に位置し、あらゆる型のあらゆる値を内包する型です。`unknown` 型の変数にはなんでも代入できますし、`unknown` を引数に取る関数にはなんでも渡せます。「あらゆる値」には nullish も含まれるため、Nullable とかどこにも書いてありませんが本質的には Nullable な型です。そのため素の状態ではほとんど何の操作もできません。
+
+```ts
+declare const u: unknown;
+
+u.toString(); // ❗ Object is of type 'unknown'.(2571)
+```
+
+`unknown` 型は `{} | null | undefined` 型とほぼ同じ ^[実際は `{} | null | undefined` が `unknown` の部分型になっています] ですが実際にユニオン型として定義されているわけではないので、`if (u != null)` といった「Nullish であることの否定」で `{}` 型を導くことはできません。ほしい型があるなら `typeof u === "string"` や `u instanceof Date` のように直接言って推論させましょう。nullish だけ除去した `{}` を得たい場合は `u instanceof Object` すれば同等の `Object` を得られます^[先程の `Object.create(null)` のように `Object` を経由していない値が漏れる点に注意してください]。
+
+# Null 合体演算子 `??` - 式が Nullish だった場合の代替値を与えたい
+
+「ある式が Nullish だった場合の代替値を与えたい」というのは非常によくある場面です。非常によくあるので ES2020 / TS 3.7 で専用の演算子 **Nullish Coalescing Operator** (**Null 合体演算子**) が導入されました。こいつがあれば今まで苦労して書いてきた冗長なコードは全部不要なので先に説明します。
+
+Null 合体演算子は「左オペランドを返す。ただし、左が nullish だったときは右オペランドを返す」という演算子です。リテラルで挙動を見てみましょう。
+
+```ts
+null ?? 1; // 1
+undefined ?? 1; // 1
+0 ?? 1; // 0
+12 ?? 1; // 12
+```
+
+「データを取得してきて nullish だった場合デフォルト値 `1` を与える」場合です。`fetchData()` は `number | null | undefined` を返します。
+
+```ts
+const data: number = fetchData() ?? 1;
+```
+
+`??` のありがたみを理解し、古いコードを読む際に困らないように `??` 以前の方法も解説します。
+
+まず、`||` が使われることがそこそこありました。JavaScript の論理和 `||` は「**左オペランドが falsy なら右オペランドを、truthy なら左オペランドを返す**」という挙動をします。nullish な値 `null` `undefined` は falsy なので、左が nullish だったら右を返してくれます。
+
+```ts
+const data: number = fetchData() || 1;
+```
+
+うまくいってそうですね、と言いたいところですが、**この場面で `||` を使うのはバッドプラクティス** です。この問題は先程説明したものと同じです。このコードは falsy な値、たとえば `0` が渡ってきた場合もデフォルト値 `1` が入ってしまいます。リテラルで確認してみましょう。
+
+```ts
+null || 1; // 1
+undefined || 1; // 1
+0 || 1; // 1
+12 || 1; // 12
+```
+
+3 つ目の例は `??` と挙動が違いますね。`??` が nullish を捕捉するのに対して `||` は **falsy の場合に** 右オペランドを返す、つまり `0` `-0` `0n` `NaN` `""` `false` といった値が来たときも右オペランドを返してしまいます。これは nullish だけを排除したい場合には意図しない挙動を引き起こします。意図しない挙動を引き起こすのは左オペランドが `number` `bigint` `string` `boolean` 型のときです。先程 `if (foo) {}` の例で説明したことですね。
+
+この場合 `??` を使わないで書き換えるには条件演算子を使います。
+
+```ts
+const fetched: number | null | undefined = fetchData();
+const data: number = fetched != null ? fetched : 1;
+```
+
+新しい一時変数 `fetched` が必要になっています。これは条件演算子の中で null チェックする値が 2 回評価されるからです。
+
+`||` を使っても間違いではない、という場面もあります。これも先程と同じですね。`object` `symbol` などの「すべての値が truthy である型」と nullish との Union になっている場合、左辺が falsy だった場合は確実に nullish と判別できます。
+
+```ts
+declare const date: Date | null | undefined;
+
+const foo = date || new Date(Date.now());
+```
+
+しかしこの例も `??` で完全に置き換えることができます。「左辺が nullish のときのデフォルト値を与える」場合は全部 `??` を使っておけば間違いありません。`??` を使いましょう。
 
 # オブジェクトの省略可能なプロパティ `prop?: T`
 
@@ -382,7 +857,7 @@ type Tp = [string, number, boolean];
 const tp: Tp = ["ea", 214, true];
 ```
 
-ラベルの要素となる型名に `?` を後置するとその要素は省略可能になり、型は `undefined` との Union 型になります。この「省略可能」はオブジェクトのオプショナルなプロパティと同じ扱いです。`length` の型は `1 | 2` になります。
+タプルの要素となる型名に `?` を後置するとその要素は省略可能になり、型は `undefined` との Union 型になります。この「省略可能」はオブジェクトのオプショナルなプロパティと同じ扱いです。`length` の型は `1 | 2` になります。
 
 ```ts
 type ToStrParam1 = [number, number?];
@@ -404,266 +879,22 @@ const c2: ToStrParam2 = [4, undefined];
 
 この関係はオブジェクトの省略可能なプロパティと同じですね。
 
-# 値が nullish かを判別したい！
-
-`if` や `switch` や条件演算子 `?:` を使って Null チェックする場合、条件部分に真偽値を入れなければいけません、じゃあどうやって nullish か否かを判定したものだろう、という話題です。
-
-## 非厳密比較演算子 `==` `!=`
-
-JavaScript の闇要素としてしばしばネタにされているのが非厳密等価演算子 `==` `!=` のガバガバな挙動です。(厳密でない) 等価演算子は左右のオペランドで型が合わない場合 _親切にも_ 暗黙的な型変換を行ってから等価判定してくれます。普通はそんなおせっかいは不要なのでわざわざ 1 タイプ多い厳密等価演算子 `===` `!==` を打たねばならないのですが、null チェックの場合は厳密でないことが逆に便利で、具体的に言うと `null == undefined` が `true` になります。
-
-```js
-null == undefined; // => true
-null === undefined; // => false
-```
-
-この挙動を使うと nullish のチェックを簡単にできます。
+ラベル付きタプルではラベルの後に `?` です。ますますオブジェクトリテラルみたいですね。
 
 ```ts
-declare n: number | null | undefined;
-
-if(n === null || n === undefined) { // 👈
-  console.log(`n is ${n}`);
-}
-
-// ----------------------------------
-
-declare n: number | null | undefined;
-
-if (n == null) {                   // 👈
-  console.log(`n is ${n}`);
-}
+type ToStrParamL = [num: number, radix?: number];
 ```
 
-これは null と undefined を同時にチェックできる非常に重要なテクニックです。`==` `!=` を使っているとエラーを出す ESLint の推奨設定でさえ null との比較だけは例外的に通してくれます。
-
-## `typeof` 演算子と歴史的経緯
-
-`typeof 変数` は変数の型を表す文字列を返します。文字列と聞くと不安な気持ちになるかもしれませんが、`typeof` の返り値は `"string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function"` という文字列リテラル型の Union 型になっているのでうっかりタイポしたらちゃんと型が合わずエラーが出ます。
+ラベルは型チェックに一切影響を及ぼしません。ラベルが生きるのは関数の引数に展開した時です。
 
 ```ts
-(n: number | string | undefined) => {
-  switch (typeof n) {
-    case "number": {
-      // ここではnはnumber
-    }
-    case "string": {
-      // ここではnはstring
-    }
-    default: {
-      // ここではnはundefined
-    }
-  }
-};
+type ToString = (...args: ToStrParamL) => string;
+
+// この型に展開される
+type ToString = (num: number, radix?: number | undefined) => string;
 ```
 
-歴史的経緯により `typeof null === "object"` となることに注意してください。`if (typeof foo === "object")` でチェックすると `object | null` 型に推論されます。
-
-> JavaScript の最初の実装では、JavaScript の値は型タグと値で表現されていました。オブジェクトの型タグは `0` で、`null` は NULL ポインター (ほとんどのプラットフォームで `0x00`) として表されていました。その結果、`null` はタグの型として `0` を持っていたため、`typeof` の戻り値は `"object"` です。([リファレンス](http://www.2ality.com/2013/10/typeof-null.html))
-> ECMAScript の修正案が (オプトインを使用して) 提案されましたが、[却下されました](https://web.archive.org/web/20160331031419/http://wiki.ecmascript.org:80/doku.php?id=harmony:typeof_null)。それは `typeof null === 'null'` という結果になるものでした。
-
-https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Operators/typeof#typeof_null
-
-## `instanceof` 演算子
-
-`typeof` では `Function` 以外のオブジェクトは全て `'object'` になり (さらに `null` も混入してしまい) ますが、`foo instanceof Foo` なら適当なクラスのインスタンスであるかを確認できます^[厳密にはクラスじゃなくコンストラクタだと思います]。nullish はどのクラスのインスタンスでもないので null チェックになります。
-
-```ts
-const localeStr = (date?: Date) => {
-  if (date instanceof Date) {
-    date.toLocaleString("jp");
-  }
-};
-```
-
-## nullish は falsy だから/だけど
-
-`null` `undefined` は **falsy** な値なので、真偽値に変換すると `false` になります。
-
-```ts
-Boolean(null); // => false
-Boolean(undefined); // => false
-```
-
-falsy な値は boolean 型の `false`、number 型の `0` `-0` `NaN`、bigint 型の `0n`、string 型の `""`、そして `null` `undefined` の 8 つです。
-
-https://developer.mozilla.org/ja/docs/Glossary/Falsy
-
-オブジェクトは全て truthy なので、`function | undefined` や `Klass | null | undefined` といった `truthyな値しかない型 | null | undefined` の形をしたユニオン型は false だった時点で null か undefined と推論でき、条件式を少し短くできます。
-
-```ts
-declare const date: Date | null;
-
-if (date) {
-  date.toLocaleTimeString("ja"); // date: Date
-}
-
-// --------------------------
-
-if (date != null) {
-  date.toLocaleTimeString("ja"); // date: Date
-}
-```
-
-ちょっと便利というか「JavaScript 理解ってる」感を演出できますが、前述したように falsy な値は null と undefined 以外にもあることに注意してください。number 型では `0` `-0` `NaN` が、string 型では `''` (空文字列) が、そして boolean 型では当然ですが `false` が falsy になるため、このショートハンドをうっかり使ってしまうと 0 や空文字列が来たときに Nullish 用の (つもりで書いた) コードが走ってしまいます。
-
-```ts
-const fn = (n: number | undefined) => {
-  if (n) {
-    return 2 + n;
-  }
-  throw new Error(`${n}`);
-};
-
-fn(0); // 💥 Error: 0
-```
-
-これでバグを埋め込むとちょっと恥ずかしいですね。ちなみに下側の行では `n` を `0 | undefined` ^[`NaN` にはリテラル型がないのでこのような不完全な推論になっています。] に推論しますから、マウスホバーすると出てくる型情報をちゃんと見れば気付けるかもしれません。
-
-## `is` カスタム型ガード - Nullish かどうか判別する関数がほしい
-
-いままで `foo != null` というような式を `if` などの条件に書いてきました。この処理は正攻法では関数に切り出すことができません。
-
-```ts
-const notNullish = (foo: unknown) => foo != null;
-
-(str: string | null | undefined) => {
-  if (notNullish(str)) {
-    str.codePointAt(0); // ❗ Object is possibly 'null' or 'undefined'.(2533)
-    //
-  }
-};
-```
-
-これは「関数の中身までチェックしていると推論が追いつかない」という、制御フロー解析の限界によるものです。推論が無理なので我々人間がコンパイラ様に畏れながら「この関数が `true` を返したなら `foo` は Nullish ではない」と明示してさしあげなければなりません。それが `is` です。関数の返り値の位置で `foo is T` という注釈を書き、`foo` が `T` 型であると扱ってほしいときは `true`、そうでないときは `false` を返します。
-
-```ts
-const notNullish = <T extends {}>(foo: T | null | undefined): foo is T =>
-  foo != null; // 👈
-
-(str: string | null | undefined) => {
-  if (notNullish(str)) {
-    str.codePointAt(0);
-    //
-  }
-};
-```
-
-`unknown` のままだと表現できないのでジェネリクスを生やしました。ちなみに今回は Nullish を排除した型を `T` にしていますが、返り値の型を `NonNullable<T>` にして `<T>(foo: T): foo is NonNullable<T>` というシグネチャに書き換えても大丈夫です。
-
-`is` で言っている内容はあくまで人間がそう言っているだけであって、実際に「この関数が `true` だったら `foo` は Nullish でない」ということはコンパイラはチェックしてくれません ^[返り値が `boolean` か否かはちゃんとチェックします]。コードで嘘をつかないようにしましょう。といっても今回詳しくチェックするまでもありませんが。
-
-# 「Nullish 以外の値」を表す型
-
-`null` `undefined` 以外ならどんな値でもいい、という場合には `{}` 型か `Object` 型を使います。`{}` は「プロパティを 0 個以上もつ型」、`Object` は「`Object` のインスタンス」です。字面での意味はまるっきり違いますがこの 2 つは本質的に同じ型です。
-
-`{}` 型は JS の空のオブジェクトリテラル `{}` が指す値の型です。しかし TypeScript の型システムは構造的部分型なので「プロパティを 0 個以上もつオブジェクト」という解釈がなされ、`3` などのプリミティブ値も含めたあらゆる非 nullish 値が代入できます。
-
-```ts
-let rularula: {} = {};
-rularula = 3;
-rularula = () => {};
-rularula = "";
-```
-
-:::details プリミティブと構造的部分型についてもっと詳しく
-`length` というプロパティをもっている型を定義します。
-
-```ts
-interface Length {
-  length: number;
-}
-```
-
-数値型の `length` プロパティをもつ値はわりと存在します。
-
-```ts
-const arr: Length = [1, 3, 5];
-arr.length; // => 3
-
-const fun: Length = (n: number) => n ** 2;
-fun.length; // => 1
-
-const str: Length = "Hello";
-str.length; // => 5
-```
-
-`"Hello"` はプリミティブですがオブジェクトと同様に `length` にアクセスできるので `Length` を満たす値として扱えます。
-
-:::
-
-`Object` 型は「JS の組み込みオブジェクト `Object` のインスタンス (と同等の型)」を表します。TypeScript の値はプリミティブ含めてすべて `Object.prototype` を継承している `Object` のインスタンスなのでやはり nullish 以外ならなんでも代入できます。`Object` を継承しない値を `Object.create(null)` で作ることもできますが **TypeScript でそれの型を表現する手段がない** ので TypeScript に飼われている限りは気にする必要はありません。
-
-それで意気揚々と `{}` を使うと `@typescript-eslint` の推奨設定では「`{}` `Object` は使うな」という怒られが発生してしまいます。「何らかの (プリミティブでない) オブジェクト」を表す正しい型は `object` なのですが、これを知らないと誤って `Object` `{}` を使ってしまいがちなのでこういう設定になっているものと思われます。これがウザい場合は `@typescript-eslint/ban-types` を無効化するか、`{}` とほぼ等価な型 `boolean | string | number | bigint | symbol | object` を外延的に書いてゴリ押すとよいです (実はこちらのほうが型推論する上で有利に働くことがあります)。
-
-# `unknown` 型は Nullish を内包している
-
-`unknown` 型はトップ型とも呼ばれます。部分型関係の頂点に位置し、あらゆる型のあらゆる値を内包する型です。`unknown` 型の変数にはなんでも代入できますし、`unknown` を引数に取る関数にはなんでも渡せます。「あらゆる値」には nullish も含まれるため、Nullable とかどこにも書いてありませんが本質的には Nullable な型です。そのため素の状態ではほとんど何の操作もできません。
-
-```ts
-declare const u: unknown;
-
-u.toString(); // ❗ Object is of type 'unknown'.(2571)
-```
-
-`unknown` 型は `{} | null | undefined` 型とほぼ同じ ^[実際は `{} | null | undefined` が `unknown` の部分型になっています] ですが実際にユニオン型として定義されているわけではないので、`if (u != null)` といった「Nullish であることの否定」で `{}` 型を導くことはできません。ほしい型があるなら `typeof u === "string"` や `u instanceof Date` のように直接言って推論させましょう。nullish だけ除去した `{}` を得たい場合は `u instanceof Object` すれば同等の `Object` を得られます^[先程の `Object.create(null)` のように `Object` を経由していない値が漏れる点に注意してください]。
-
-# Null 合体演算子 `??` - 式が Nullish だった場合の代替値を与えたい
-
-「ある式が Nullish だった場合の代替値を与えたい」というのは非常によくある場面です。非常によくあるので ES2020 / TS 3.7 で専用の演算子 **Nullish Coalescing Operator** (**Null 合体演算子**) が導入されました。こいつがあれば今まで苦労して書いてきた冗長なコードは全部不要なので先に説明します。
-
-Null 合体演算子は「左オペランドを返す。ただし、左が nullish だったときは右オペランドを返す」という演算子です。リテラルで挙動を見てみましょう。
-
-```ts
-null ?? 1; // 1
-undefined ?? 1; // 1
-0 ?? 1; // 0
-12 ?? 1; // 12
-```
-
-「データを取得してきて nullish だった場合デフォルト値 `1` を与える」場合です。`fetchData()` は `number | null | undefined` を返します。
-
-```ts
-const data: number = fetchData() ?? 1;
-```
-
-`??` のありがたみを理解し、古いコードを読む際に困らないように `??` 以前の方法も解説します。
-
-まず、`||` が使われることがそこそこありました。JavaScript の論理和 `||` は「**左オペランドが falsy なら右オペランドを、truthy なら左オペランドを返す**」という挙動をします。nullish な値 `null` `undefined` は falsy なので、左が nullish だったら右を返してくれます。
-
-```ts
-const data: number = fetchData() || 1;
-```
-
-うまくいってそうですね、と言いたいところですが、**この場面で `||` を使うのはバッドプラクティス** です。この問題は先程説明したものと同じです。このコードは falsy な値、たとえば `0` が渡ってきた場合もデフォルト値 `1` が入ってしまいます。リテラルで確認してみましょう。
-
-```ts
-null || 1; // 1
-undefined || 1; // 1
-0 || 1; // 1
-12 || 1; // 12
-```
-
-3 つ目の例は `??` と挙動が違いますね。`??` が nullish を捕捉するのに対して `||` は **falsy の場合に** 右オペランドを返す、つまり `0` `-0` `0n` `NaN` `""` `false` といった値が来たときも右オペランドを返してしまいます。これは nullish だけを排除したい場合には意図しない挙動を引き起こします。意図しない挙動を引き起こすのは左オペランドが `number` `bigint` `string` `boolean` 型のときです。先程 `if (foo) {}` の例で説明したことですね。
-
-この場合 `??` を使わないで書き換えるには条件演算子を使います。
-
-```ts
-const fetched: number | null | undefined = fetchData();
-const data: number = fetched != null ? fetched : 1;
-```
-
-新しい一時変数 `fetched` が必要になっています。これは条件演算子の中で null チェックする値が 2 回評価されるからです。
-
-`||` を使っても間違いではない、という場面もあります。これも先程と同じですね。`object` `symbol` などの「すべての値が truthy である型」と nullish との Union になっている場合、左辺が falsy だった場合は確実に nullish と判別できます。
-
-```ts
-declare const date: Date | null | undefined;
-
-const foo = date || new Date(Date.now());
-```
-
-しかしこの例も `??` で完全に置き換えることができます。「左辺が nullish のときのデフォルト値を与える」場合は全部 `??` を使っておけば間違いありません。`??` を使いましょう。
+num, radix という引数名が継承され radix は省略可能な引数になっていることに注目してください。
 
 # `?.` - Nullish かもしれない値にプロパティアクセスしたい！
 
@@ -708,7 +939,7 @@ if (article != null) {
 }
 ```
 
-ネストが多すぎて地獄ですね。それでは条件演算子を使ってみましょう。
+ネストが多くて地獄ですね。それでは条件演算子を使ってみましょう。
 
 ```ts
 const githubName =
@@ -878,178 +1109,6 @@ toString(num!);
 当たり前ですが `!` を使っている場合、その値が nullable でないことを保証する役割はコンパイラからプログラマに移ります。むやみやたらに使うと危険です。
 
 まあ、うっかり落ちると言っても非 Null 安全言語で null チェックすっぽかしてエラー落ちするのと完全に同じですからね。しかも危ない箇所が `!` で可視化されるので、どこに注意を払えばいいのかも一目瞭然です。
-
-# nullish だったらさっさと処理を打ち切りたい
-
-## 早期 `return` パターン - nullish なら適当な値を返してさっさと終了したい
-
-関数内で、早期に `return` することで型を絞り込むことができます。単純に `if-else` で分岐するよりもネストが浅くなってコードが読みやすくなります (効果には個人差があります)。
-
-```ts:数値の3倍を返す。undefinedだった場合は0を返す
-const fn = (n: number | undefined) => {
-  if (n === undefined) return 0;
-  return n * 3; // n: number
-};
-```
-
-```ts:if-elseのコード。ネストが深い
-const fn = (n: number | undefined) => {
-  if (n === undefined) {
-    return 0
-  }
-  else {
-    return n * 3;
-  }
-}
-```
-
-```ts:三項条件演算子のコード。やりすぎると読めない
-const fn = (n: number | undefined) => n === undefined ? 0 : n * 3;
-```
-
-三項演算子に書き換えられる程度の関数だと微妙ですが、`n` の Null チェック後が長い場合にとくに効果が高いです。
-
-## `throw` - nullish だったら例外を投げたい
-
-`return` と同じように `throw` でエラーを投げ (ることで大域脱出を行っ) てもしっかり型推論されます。`return` との違いは
-
-- 関数の外でも使えること
-- 返り値のことを考えなくてもよいこと
-- `catch` しそこねるとアプリケーションがまるごと落ちること
-
-の 3 つです。
-
-```ts:数値の平方を返し、nullishだった場合はthrowする
-const square = (n: number | null | undefined): number => {
-  if (n == null) {
-    throw new Error();
-  }
-  return n * n;
-};
-```
-
-「実行時エラーが飛んでる時点で Nullish の扱いでヘマしたのとそう変わらないのでは？」と思われるかもしれませんが、「nullish だったらエラーが起きても構わない」という `!` に比べると「nullish だったら問答無用でエラーにする」 `throw` のほうが行儀はいいとも考えられます。算術演算など、nullish だったとしてもエラーが発生しない処理の場合ならなおさらです。
-
-## ループや再帰 で Null チェック
-
-あまり出番があるかはわかりませんが、ループを行う `while` `for` も条件分岐を含んでいるので制御フロー解析の対象になります。
-
-*実践的な例*として数値の平方を返し、nullish を渡す不届き者には無限ループにより負荷をかける関数を定義します。
-
-```ts:間違えてもプロダクションで使わないように
-function square (n: number | undefined) {
-  for (; n == null;);
-
-  return n ** 2;
-}
-```
-
-どんなループでも再帰に書き換えることが知られています。ループ構文に条件分岐が含まれていることを示すために、再帰による実装例も載せておきます。
-
-```ts
-function square(n: number | null | undefined): number {
-  return n == null ? square(n) : n ** 2;
-}
-```
-
-再帰が絡むと返り値が推論できなくなるので注釈を書いています。
-
-冗談はともかくとして、`for` `while` を使った実用的な null チェックコードをご存知の方はどうぞコメントください。
-
-## `never` を返す関数
-
-TypeScript の `never` 型は値がない型です。集合で言うと空集合 $\emptyset$ に相当します。空集合は元が存在しない、つまり濃度 0 の集合で、それと同じように `never` 型の値は存在しません。変数が `never` 型になったらその部分のコードは実行されません。引数に `never` 型の値をとる関数は呼び出すことができません。`never` 型の値を返す関数は値を返しません。
-
-`null` 型、`undefined` 型との混同にご注意ください。`null` 型は `null` 値、`undefined` 型は `undefined` 値、それぞれ 1 つだけの値をもつ型です。
-
-たとえばある変数が `never` に制御フロー解析でキャストされたら、その部分のコードは **型システム上実行されることがありえない** ということを表しています。
-
-```ts
-(n: number) => {
-  if (n == null) {
-    // n: never
-  }
-};
-```
-
-`n` は絶対数値なのだから `n == null` が true になって if の中が実行されることはありえません。ありえないので never になっています。
-
-never を返す関数は **関数が正常に終了して値を返すことがありえない** ことを表します。たとえば必ずエラーを投げる関数は呼び出されたら期待通りにエラーを投げ、呼び出し元に戻って `catch` に捕まるまで次々に関数を抜けていきます。正常終了して返り値をくれることはありえません。なので `never` が返り値にきます。
-
-```ts
-const panic = (e: unknown) => {
-  throw e;
-};
-// panic: (e: unknown) => never
-```
-
-Node.js ではプログラムを終了するのに `process.exit()` が使えます。このメソッドも呼び出されたらプロセスが終了するので後続のコードは実行されません。したがって返り値は `never` です。
-
-`never` は制御フロー解析に影響を与えることができます。たとえば Node.js で引数が足りないとき終了コード 1 でプロセスを終了させたいとします。
-
-```ts
-const argv1 = process.argv[1]; // (string | undefined)[]
-
-if (argv1 == null) {
-  console.error("Not enough arguments");
-  process.exit(1); // ここでneverが返る => 後続のコードは実行されない
-}
-
-// ここ以降ではargv1: string
-```
-
-`process.exit(1)` でプロセスは終了コード 1 を返して終了するので後続の処理は実行されません。これは undefined である可能性を排除したことになります。結果的に下の方では `argv1` が `string` に推論されました。
-
-## `asserts` - `throw` や `never` でのチェックを関数に切り出したい
-
-`if` を使ったチェックの条件部分を関数に切り出すのが `is` なら `asserts` は `throw` や `never` でのチェックを切り出せるようにします。`asserts foo is U` は「この関数が何らかの値を返したら `foo` は `U` 型として扱っていいよ」という意味です。
-
-何らかの値を返さない場合というのは例えば、
-
-- エラーが `throw` された
-- `process.exit()` などでコードの実行が終了した
-
-という場面です。
-
-引数が Nullish だった場合は `throw` する (ので、正常に関数が終了したら引数は `null` でも `undefined` でもないと推論させる) 関数を書きました。
-
-```ts
-const assertsNonNull = <T>(foo: T): asserts foo is NonNullable<T> => {
-  if (foo == null) {
-    throw new TypeError("assertsNonNullがnullishを受け取った");
-  }
-};
-```
-
-`throw` の例で出した `square` を簡単に書けるようになります。
-
-```ts
-const square = (n: number | null | undefined): number => {
-  assertsNonNull(n);
-  return n * n;
-};
-```
-
-`is` と同じように、`asserts` においてもアノテーションと実装の整合性はプログラマが責任を持ちます。
-
-## コンマ演算子 `,` - `asserts` Null チェックと値の使用を 1 つの式にしたい
-
-**あなたはコンマ演算子を知っていますか？** カンマで区切った複数の式を左から評価し、最後の式の値を返します。シンタックスエラーとかでたまに見かけるかもしれません。
-
-```ts
-let a = 0;
-let b = (a++, a * 2); // b => 2;
-```
-
-末尾以外の式は基本的に副作用を起こすものが選ばれるでしょう。再代入、インクリメント、デクリメント、 `console.log()` などの副作用持ち関数、等々。そして `asserts` 型述語をもつ関数にも (TypeScript の型システム上の) 副作用があります。つまり、コンマ演算子を使うと `asserts` 関数による Null チェックとチェック済みの変数を使う式を 1 つの式としてまとめることができます。
-
-```ts:assertsNonNull() が定義済みだと思って読んでください
-const square = (n: number | null | undefined): number => (assertsNonNull(n), n * n);
-```
-
-この使い方、コンマ演算子の知名度が低すぎたのかごく最近まで TypeScript の推論対象になっていませんでした。Issue ができたのが今年の 10 月で [microsoft/TypeScript#41264: Assertions do not narrow types when used as operand of the comma operator.](https://github.com/microsoft/TypeScript/issues/41264) 修正が取り込まれたのが現時点の最新版である 4.1 です。
-
-参考: [asserts で assert 関数 - Qiita](https://qiita.com/sugoroku_y/items/bd82009001973ddfa3d4)
 
 # 変数やプロパティの初期化チェック
 
@@ -1288,9 +1347,15 @@ declare const tags: Array<string | null | undefined> | null | undefined;
 arr?.flatMap((n) => n ?? []) ?? [];
 ```
 
-# 代数的データ型で Nullable を表現する
+# Tagged Union で Nullable を表現する
 
-Null 安全を実現するアプローチには複数あると説明しました。TypeScript では Union 型ですが、Haskell, Rust, Elm, PureScript 等の言語で主流なのが代数的データ型 (Algebraic data types, ADT) を使った方法です。言語ごとの呼び方の違いが大きく、Rust では C の似た機能に寄せて **enum** 、現在の Elm では **カスタム型** と呼ばれていますが、かつてはユニオン型と呼んでいた時期もあったようです。もちろん TypeScript の Union 型とは異なるものですが、複数の選択肢 (variant) から 1 つを選ぶという点では共通しています。
+Null 安全を実現するアプローチには複数あると説明しました。TypeScript では Union 型ですが、Haskell, Swift, Rust, そして AltJS の一角である Elm, PureScript, Reason 等の言語で使われるのが **Tagged Union** を使った方法です。言語ごとの呼び方の違いが大きく、Rust では C の似た機能に寄せて **enum** 、現在の Elm では **カスタム型** と呼ばれていますが、かつてはユニオン型と呼んでいた時期もあったようです。もちろん TypeScript の Union 型とは異なるものですが、複数の選択肢 (variant) から 1 つを選ぶという点では共通しています。代数的データ型 (Algebraic data types, ADT) とも呼ばれます。
+
+```haskell
+data Maybe a = Nothing | Just a
+```
+
+`Maybe` 型は型引数 `a` をとり、`Nothing` か `Just` のどちらかの値です。`Just` は `a` 型の値を 1 つ持ちますが `Nothing` は何も持ちません。
 
 ADT を使うと何がいいかというと、ADT を使った Nullable はネストできます。ネストができると Nullable の発生箇所が複数ある場合にどこで発生した虚無値か見つけられてちょっと便利です。TypeScript でも文字列リテラル型とユニオン型を使って代数的データ型を模倣したものが作れます。
 
@@ -1311,9 +1376,9 @@ type Option<A> = None | Some<A>;
 
 # オフトピック集
 
-nullish に関連しているがあまり本筋に関係がない話題を書きます。
+nullish に関連しているがあまり役に立たない話題を書きます。
 
-## undefined はリテラルではない
+## `undefined` はリテラルではない
 
 ソースコード中の `null` は `null` という値を示すリテラルです。立派な予約語でありグローバル変数ではないので、`null` とかいう名前の変数を定義するようなことはできません。それに対し `undefined` は ECMAScript の組み込みオブジェクト、すなわちグローバル変数やグローバルオブジェクトのプロパティとも言えるものです。`globalThis.undefined` で `undefined` を得られます。ECMAScript 5 以降では仕様によりグローバル変数の `undefined` には再代入できませんが、`null` と違って予約語ではないのでグローバルでないスコープでは `undefined` という名前の変数を定義できます。もちろん推奨はされていません。
 
@@ -1365,3 +1430,7 @@ const pop = (arr: unknown[]): void => {
 ```
 
 これでも十分じゃないかと思いますが。
+
+# おわりに
+
+TypeScript で null と undefined を安全に扱うための機能について網羅的に解説しました。nullish を安全に扱う、と言いつつこれらの機能やテクニックの中には nullish 以外に使えるものも数多く存在します。TypeScript において nullable 型はただの Union 型です。Union 型が理解できれば何ら難しいことはありません。この記事を通してみなさんが Null 安全な言語の素晴らしさに触れ、Null 安全をあたりまえのものとして受け入れてくれることを願っています。
