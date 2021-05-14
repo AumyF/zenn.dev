@@ -16,11 +16,15 @@ published: false
 
 npm scripts で不要なキャッシュやビルドの出力ファイルを削除したい場合は [**`rimraf`**](https://www.npmjs.com/package/rimraf) というパッケージを POSIX の `rm -rf` の代わりに使うことが多いと思います。これは [Windows で `npm run` の実行に使われる](https://docs.npmjs.com/cli/v7/commands/npm-run-script#script-shell) コマンドプロンプト (cmd.exe) に `rm` がないのを始めとした環境依存の問題があるからです。
 
-とはいえパッケージなしではディレクトリの再帰的削除もできない、というのはちょっと困るので、v14.14.0 で POSIX の `rm` に相当する [**`fs.rm`**](https://nodejs.org/api/fs.html#fs_fs_rm_path_options_callback) [**`fs.promises.rm`**](https://nodejs.org/api/fs.html#fs_fspromises_rm_path_options) [**`fs.rmSync`**](https://nodejs.org/api/fs.html#fs_fs_rmsync_path_options) が追加され、`fs.rmSync('foo/', { recursive: true, force: true })` とすることで `rm -rf` や `rimraf` に近いことができるようになりました。というより、glob が使えないこと以外は [rimraf がそのまま使われています](https://github.com/nodejs/node/blob/79c57d0cc55db834177d2f8ce4b4d83109a23dc9/lib/fs.js#L1185)。
+とはいえパッケージなしではディレクトリの再帰的削除もできない、というのはちょっと困るので、v12.10.0 で `fs.rmdir` `fs.promises.rmdir` `fs.rmdirSync` に `recursive` オプションが追加され、`fs.rmdirSync('foo/', { recursive: true })` とすることで `rm -rf` や `rimraf` に近いことができるようになりました。というより、glob が使えないこと以外は [rimraf がそのまま使われています](https://github.com/nodejs/node/blob/79c57d0cc55db834177d2f8ce4b4d83109a23dc9/lib/fs.js#L1185)。
+
+実は POSIX の `rmdir` には再帰的削除の機能がないため `rmdir` のオプションに決定するまでにはそこそこの議論があったようです。そもそも Node.js のファイル削除 API は POSIX の `rm` に相当するのが `fs.unlink` で名前が違ってややこしいといった問題を抱えていました。
+
+POSIX に名前と機能を合わせるため、v14.14.0 で `rm` に相当する [**`fs.rm`**](https://nodejs.org/api/fs.html#fs_fs_rm_path_options_callback) [**`fs.promises.rm`**](https://nodejs.org/api/fs.html#fs_fspromises_rm_path_options) [**`fs.rmSync`**](https://nodejs.org/api/fs.html#fs_fs_rmsync_path_options) が追加されました。Linux のシェルで `rm -rf` とするように、`fs.rmSync('foo/', { recursive: true, force: true })` とすることでディレクトリを再帰的に削除できます。
 
 ということで、`fs.rmSync` するコードを文字列として `node -e` に渡してディレクトリを削除できます。`node -e` や `node -p` では REPL と同じく `fs` のインポートは不要です。また、`fs.rmSync` にした理由は、`fs.rm` は `,()=>{}` のぶん、`fs.promises.rm` は `.promises` のぶん若干長いためです。
 
-`fs.rm` に先立ち Node.js v12.10.0 で `fs.rmdir` `fs.promises.rmdir` `fs.rmdirSync` に `recursive` オプションが追加されていましたが、`rmdir` に再帰的削除オプションがあるというのが POSIX と違っててややこしいという理由で [v16.0.0 で deprecated になりました](https://github.com/nodejs/node/pull/37302)。
+また、`fs.rmdir` 系の `recursive` オプションは [v16.0.0 で deprecated になりました](https://github.com/nodejs/node/pull/37302)。将来的にこのオプションは指定しても無視されることになります。
 
 ```
 [nix-shell:~/fs]$ node -v
