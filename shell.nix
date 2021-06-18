@@ -2,14 +2,10 @@
     inherit system;
   }
 , system ? builtins.currentSystem
+, zenn-channel ? import <zenn-cli> {}
 }:
-let
-  zenn-cli = import ./zenn-cli.nix {
-    inherit pkgs system;
-  };
-in
 pkgs.mkShell {
   nativeBuildInputs = [
-    zenn-cli.zenn-cli
+    zenn-channel.zenn-cli
   ];
 }
