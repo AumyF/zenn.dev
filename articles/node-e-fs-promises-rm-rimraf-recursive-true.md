@@ -18,11 +18,11 @@ npm scripts で不要なキャッシュやビルドの出力ファイルを削�
 
 とはいえパッケージなしではディレクトリの再帰的削除もできない、というのはちょっと困るので、v12.10.0 で `fs.rmdir` `fs.promises.rmdir` `fs.rmdirSync` に `recursive` オプションが追加され、`fs.rmdirSync('foo/', { recursive: true })` とすることで `rm -rf` や `rimraf` に近いことができるようになりました。ちなみに、glob が使えないこと以外は [rimraf がそのまま使われています](https://github.com/nodejs/node/blob/79c57d0cc55db834177d2f8ce4b4d83109a23dc9/lib/fs.js#L1185)。
 
-実は POSIX の `rmdir` には再帰的削除の機能がないため、`recursive` を `rmdir` のオプションに追加するとややこしくなるという意見があったようです。大体案として `rmtree` という関数の追加とかが考えられたようです。また、POSIX との整合性で言うと `rm` に相当するのが `fs.unlink` になっていてややこしいといった問題もありました。
+しかし、実は POSIX の `rmdir` には再帰的削除の機能がないため、`recursive` を `rmdir` のオプションに追加するとややこしくなるという意見があったようです。大体案として `rmtree` という関数の追加とかが考えられたようです。また、POSIX との整合性で言うと `rm` に相当するのが `fs.unlink` になっていてややこしいといった問題もありました。
 
 そこで、v14.14.0 で POSIX の `rm` に相当する [**`fs.rm`**](https://nodejs.org/api/fs.html#fs_fs_rm_path_options_callback) [**`fs.promises.rm`**](https://nodejs.org/api/fs.html#fs_fspromises_rm_path_options) [**`fs.rmSync`**](https://nodejs.org/api/fs.html#fs_fs_rmsync_path_options) が追加されました。Linux のシェルで `rm -rf` とするように、`fs.rmSync('foo/', { recursive: true, force: true })` とすることでディレクトリを再帰的に削除できます。
 
-ということで、`fs.rmSync` するコードを文字列として `node -e` に渡してディレクトリを削除できます。`node -e` や `node -p` では REPL と同じく `fs` のインポートは不要です。また、`fs.rmSync` にした理由は、`fs.rm` は `,()=>{}` のぶん、`fs.promises.rm` は `.promises` のぶん若干長いためです。
+ということで、`fs.rmSync` するコードを文字列として [`node --eval`](https://nodejs.org/api/cli.html#cli_e_eval_script) (`node -e`) に渡してディレクトリを削除できます。`node -e` や `node -p` では REPL と同じく `fs` のインポートは不要です。また、`fs.rmSync` にした理由は、`fs.rm` は `,()=>{}` のぶん、`fs.promises.rm` は `.promises` のぶん若干長いためです。
 
 `fs.rm` 系に再帰的削除オプションが追加されたため、`fs.rmdir` 系の `recursive` オプションは [v16.0.0 で deprecated になりました](https://github.com/nodejs/node/pull/37302)。将来的にこのオプションは指定しても無視されることになります。
 
@@ -35,7 +35,7 @@ v16.1.0
 (Use `node --trace-deprecation ...` to show where the warning was created)
 ```
 
-`fs.rm` が現行 LTS すべてで使えるようになるのは Node.js v12 が EOL になる 2022-04-30 以降です。それか v12 に `fs.rm` がバックポートされたらその瞬間から使い放題になるでしょう。
+`fs.rm` が現行 LTS すべてで使えるようになるのは Node.js v12 が EOL になる 2022-04-30 以降です。それか v12 に `fs.rm` がバックポートされるかもしれません。
 
 # 参考リンク
 
