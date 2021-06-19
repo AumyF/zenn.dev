@@ -3,7 +3,7 @@ title: npm scripts で rimraf を使わずディレクトリを再帰的に削�
 type: tech
 topics: [NodeJS, rimraf]
 emoji: 🗑️
-published: false
+published: true
 ---
 
 # 3 行で
