@@ -18,7 +18,7 @@ npm scripts で不要なキャッシュやビルドの出力ファイルを削�
 
 とはいえパッケージなしではディレクトリの再帰的削除もできない、というのはちょっと困るので、v12.10.0 で `fs.rmdir` `fs.promises.rmdir` `fs.rmdirSync` に `recursive` オプションが追加され、`fs.rmdirSync('foo/', { recursive: true })` とすることで `rm -rf` や `rimraf` に近いことができるようになりました。ちなみに、glob が使えないこと以外は [rimraf がそのまま使われています](https://github.com/nodejs/node/blob/79c57d0cc55db834177d2f8ce4b4d83109a23dc9/lib/fs.js#L1185)。
 
-しかし、実は POSIX の `rmdir` には再帰的削除の機能がないため、`recursive` を `rmdir` のオプションに追加するとややこしくなるという意見があったようです。大体案として `rmtree` という関数の追加とかが考えられたようです。また、POSIX との整合性で言うと `rm` に相当するのが `fs.unlink` になっていてややこしいといった問題もありました。
+しかし、実は POSIX の `rmdir` には再帰的削除の機能がないため、`recursive` を `rmdir` のオプションに追加するとややこしくなるという意見があったようです。代替案として `rmtree` という関数の追加とかが考えられたようです。また、POSIX との整合性で言うと `rm` に相当するのが `fs.unlink` になっていてややこしいといった問題もありました。
 
 そこで、v14.14.0 で POSIX の `rm` に相当する [**`fs.rm`**](https://nodejs.org/api/fs.html#fs_fs_rm_path_options_callback) [**`fs.promises.rm`**](https://nodejs.org/api/fs.html#fs_fspromises_rm_path_options) [**`fs.rmSync`**](https://nodejs.org/api/fs.html#fs_fs_rmsync_path_options) が追加されました。Linux のシェルで `rm -rf` とするように、`fs.rmSync('foo/', { recursive: true, force: true })` とすることでディレクトリを再帰的に削除できます。
 
