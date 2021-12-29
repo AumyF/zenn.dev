@@ -13,3 +13,8 @@ chapters:
   - your-first-flake
   - compiling-c-program
   - nel
+  - nixpkgs
+  - binary-cache
+  - go
+  - node
+  - elm
