@@ -1,0 +1,15 @@
+title: "純粋関数型パッケージマネージャNix"
+summary: "Nixは純粋関数型パッケージマネージャです。"
+topics: ["Nix", "NixOS"]
+published: false
+price: 0 # 有料の場合200〜5000
+# 本に含めるチャプターを順番に並べましょう
+chapters:
+  - intro
+  - installation
+  - installing-package
+  - nix-shell-and-nix-run
+  - profiles-and-gc
+  - your-first-flake
+  - compiling-c-program
+  - nel
