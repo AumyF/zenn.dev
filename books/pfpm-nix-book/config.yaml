@@ -16,4 +16,5 @@ chapters:
   - binary-cache
   - go
   - node
+  - docker
   - elm

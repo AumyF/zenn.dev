@@ -2,31 +2,37 @@
 title: "Nixを導入する"
 ---
 
-Nix は一般的な Linux ディストリビューションと macOS に対応しています。また、NixOS を導入すれば最初から Nix を使用することができます。
+Nix は一般的な Linux ディストリビューションと macOS に対応している。また、NixOS を導入すれば最初から Nix を使用することができます。
 
 # Linux に Nix を導入する
 
-以下のコマンドを実行すると、Nix のインストールスクリプトをダウンロードし、実行します。
+以下のコマンドを実行すると、Nix のインストールスクリプトをダウンロードし、実行する。もちろん、一回スクリプトをダウンロードし、中身を精査してから実行してもよい。
 
 ```shell
 ❯ curl -L https://nixos.org/nix/install | sh
 ```
 
 :::message
-この本において、`❯` はシェルのプロンプトを表します。
+この本において、`❯` はシェルのプロンプトを表す。
 :::
+
+インストールスクリプトは `~/.profile` に以下の内容を追記する。
+
+```shell:~/.profile
+if [ -e /home/u/.nix-profile/etc/profile.d/nix.sh ]; then . /home/u/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
+```
 
 # macOS に Nix を導入する
 
-macOS Catalina 以降でルートファイルシステムが read-only になった影響で、macOS への Nix インストールはやや煩雑になってしまいました。
+macOS Catalina 以降でルートファイルシステムが read-only になった影響で、macOS への Nix インストールは煩雑になってしまった。この本では macOS での導入方法は扱わない。
 
 # NixOS を導入する
 
-[KDE Plasma デスクトップ環境が導入された NixOS の VirtualBox OVA ファイル](https://nixos.org/download.html#nixos-virtualbox) が配布されています。
+[KDE Plasma デスクトップ環境が導入された NixOS の VirtualBox OVA ファイル](https://nixos.org/download.html#nixos-virtualbox) が配布されているので、それを使うとインストール作業が不要で NixOS を使い始めることができる。
 
 ---
 
-`nix --version` を実行してみましょう。以下のような出力が表示されたらインストールは完了です。
+`nix --version` を実行して、以下のようにバージョンが出力されたらインストールは完了だ。
 
 ```shell
 ❯ nix --version
