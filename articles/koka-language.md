@@ -1,14 +1,14 @@
 ---
-title: "Algebraic Effectsを備えたプログラミング言語Koka"
+title: "プログラミング言語Kokaやってみた"
 type: tech
 topics: [Koka]
 emoji: 🎆
 published: false
 ---
 
-突然ですがみなさん未来は好きですか？私は少なくとも過去よりは好きです！未来は最高なのでプログラミングとコンピュータがさらなる進歩を遂げることが期待できますが、今回はまさにそんなプログラミング言語の未来を形作るであろう実験的研究用言語 **Koka** について書きます。Koka でもっともわかりやすい特徴は **algebraic effects** を搭載していることです。最近流行りのアレですね。React Hooks や React Suspense に関係しているアレと言われたらピンとくる方もいらっしゃるのではないですか？さあ、一緒に Koka を触ってプログラミング言語の未来を垣間見ましょう！
+突然ですがみなさん未来は好きですか？未来は最高なのでプログラミングとコンピュータがさらなる進歩を遂げることが期待できますが、今回はまさにそんなプログラミング言語の未来を形作るであろう実験的研究用言語 **Koka** について書きます。Koka でもっともわかりやすい特徴は **algebraic effects** を搭載していることです。最近流行りのアレですね。React Hooks や React Suspense に関係しているアレと言われたらピンとくる方もいらっしゃるのではないですか？さあ、一緒に Koka を触ってプログラミング言語の未来を垣間見ましょう！
 
-Koka は Microsoft Research というところで開発されている研究用言語で、「こうか」と読みます。最初はコカの実とかコカインとかが由来かと思っていたんですがそうではなく、なんと日本語の「効果」に由来するらしいです。
+Koka は Microsoft Research というところで開発されている研究用言語で、「こうか」と読みます。最初はコカの実とかのもじりかと思っていたんですがそうではなく、なんと日本語の「効果」に由来するらしいです。
 
 > Koka is a function-oriented language that separates pure values from side-effecting computations (**The word ‘kōka’ (or 効果) means “effect” or “effective” in Japanese**).
 > https://koka-lang.github.io/koka/doc/book.html#tour (強調は筆者による)
@@ -35,7 +35,7 @@ Koka 処理系のインストールは `curl | bash` するだけです。
 
 便利。
 
-[VS Code のシンタックスハイライトプラグイン]()が公式から提供されているので入れておきましょう。
+[VS Code のシンタックスハイライトプラグイン](https://marketplace.visualstudio.com/items?itemName=koka.language-koka)が公式から提供されているので入れておきましょう。
 
 # Hello, world
 
@@ -73,6 +73,8 @@ created: .koka/v2.3.2/cc-debug/src_hello
 
 Hello, Koka!
 ```
+
+REPL は `koka` で起動できます。
 
 # 「Minimal but General」
 
@@ -178,7 +180,7 @@ fun caesar( s : string )
   s.encode(3)
 
 fun main()
-  "koka is a programming language with algebraic effects"
+  "koka is a programming language which has algebraic effects"
     .caesar
     .println
 ```
@@ -335,7 +337,7 @@ fun main()
       println(value)
 ```
 
-あー、ちょっと待ってくれ、えーっと？ `handle` の後にあるのがエフェクトを起こす可能性があるブロックで、`log` に詰まった値を `log(value)` でパターンマッチのようにして分解している。
+あー、ちょっと待ってくれ、えーっと？ `handle` の後にあるのがエフェクトを起こす可能性があるブロックで、そこで発生した `log` に詰まった値を `log(value)` でパターンマッチのようにして分解している。
 
 Algebraic effects のハンドラはこんな感じになりがちだが、「エフェクトを起こす可能性があるブロック」が変な位置にある^[実は `match 値 パターン` と同じ形をしているのだが、値の位置にブロックという長くなりうる物体が置かれるので読みづらいのだと思う。たぶん]おかげか普通に読みづらく algebraic effects の理解を妨げている感がある、と私は勝手に思っています。そこで Koka が誇る新構文 `with handler` を登場させましょう。
 
@@ -386,6 +388,7 @@ import std/os/path
 
 fun main()
   // write-text-fileが投げる作用をハンドリング
+  // with handler brk の省略
   with brk throw-exn(err)
     println(err.show)
   with ctl log(value)
@@ -395,9 +398,7 @@ fun main()
   f(2, 3).println
 ```
 
-いい感じに実装だけを差し替えられる。
-
-## `fun` ハンドラ
+いい感じに実装だけを差し替えられます。
 
 # 状態をつくる
 
@@ -436,7 +437,28 @@ fun main()
   root()
 ```
 
-`main()` にハンドラがベタ書きされているのがあまりよくない。同じようなハンドラを何回も書くようなときがありそうですし、関数として再利用したいですね。
+## `fun` ハンドラ
+
+`ctl` の代わりに `fun` というハンドラ定義があります。これは「エフェクトの引数を受け取って何らかの計算をし、その結果を継続に渡す」を表しています。
+
+```
+with fun foo(引数)
+  本体
+```
+
+は
+
+```
+with ctl foo(引数)
+  val f = { 本体 }
+  resume(f())
+```
+
+に脱糖されます。
+
+## ハンドラを関数に切り出す
+
+ところで、`main()` にハンドラがベタ書きされているのがあまりよくないと思いませんか？同じようなハンドラを何回も書くようなときがありそうですし、関数として再利用したいですね。
 
 ```plain:src/state.kk
 fun handle-state(th)
