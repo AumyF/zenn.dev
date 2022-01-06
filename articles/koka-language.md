@@ -309,6 +309,7 @@ fun main()
 effect logger
   ctl log(value : int) : ()
 
+// (int, int) -> logger int
 fun f(x : int, y : int)
   val a = x * x
   log(a)
