@@ -47,30 +47,38 @@ bash <(curl -L https://nixos.org/nix/install)
 
 `nix-env` は現在使用しているプロファイルを編集するコマンドです。
 
-インストール可能なパッケージの一覧を表示^[おそらく毎回大量の Nix Expression を評価しなおしているため、このコマンドを実行するのにはかなりの時間がかかる]:
+### パッケージを検索
+
+パッケージの一覧表示や検索には `--query` もしくは省略形の `-q` を使います。
+
+インストール可能なすべてのパッケージを表示するには `nix-env -qa` を使います^[おそらく毎回大量の Nix Expression を評価しなおしているため、このコマンドを実行するのにはかなりの時間がかかる]。
 
 ```
-nix-env -qaP
+nix-env -qa
 ```
 
-パッケージをインストール^[もろもろの事情により、`-i hello` より `-iA nixpkgs.hello` のほうが圧倒的に高速]:
+引数としてパッケージ名を渡すと検索もできます。
+
+### パッケージをインストール
+
+プロファイルにパッケージをインストールするには `--install` もしくは `-i` を使います^[もろもろの事情により、`-i node` より `-iA nixpkgs.node` のほうが圧倒的に高速]。
 
 ```
-nix-env -iA nixpkgs.hello
+nix-env -iA nixpkgs.nodejs
 ```
 
 `nixpkgs` からパッケージをインストールするときにはバイナリキャッシュという仕組みでビルド済みバイナリが直接降ってくるため、いちいちビルドが走ることはありません。
 
-`hello` が動作することを確かめます。
+`node` が動作することを確かめます。
 
 ```shell
-which hello
+which node
 ```
 
-`~/.nix-profile/bin/hello` にあることがわかると思います。これはシンボリックリンクになっているので、辿ってみましょう。
+`~/.nix-profile/bin/node` にあることがわかると思います。これはシンボリックリンクになっているので、辿ってみましょう。
 
 ```shell
-readlink ~/.nix-profile/bin/hello
+readlink ~/.nix-profile/bin/node
 ```
 
 ```
