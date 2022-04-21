@@ -10,9 +10,9 @@ published: false
 
 [State of JS](https://2020.stateofjs.com/en-US/technologies/javascript-flavors/) によれば、TypeScript を使ったことのある人の割合^[「would use again」(また使うだろう) と「would not use again」(次使うことはないだろう) の合算を回答者全員で割った商です。ちなみに「never heard / 聞いたことがない・知らない」を選んだ人の割合は 2018 年以降ずっと 1%を割り込んでおり、TypeScript の認知度はほぼ 100% という結果になっています。] は、2016 年に 25% だったのが 2020 年には 78% に到達しており、TypeScript は AltJS 筆頭というポジションを超え、JavaScript を使った開発において避けては通れないものになってきています。
 
-TypeScript を導入することの利点は **静的型検査** のただ一点 ^[型定義がドキュメントになるとかエディタの補完が強く効くようになるといった利点も、広く捉えれば静的型検査があることによる利点になります。] に集約されます。静的型検査は「数値を受け取る関数にうっかり文字列を渡してしまう」ことや、「null や undefined が入っている変数にうっかりアクセスして実行時エラーが起こる」ことを阻止します。この 2 つの例のうち後者は **Null 安全** と呼ばれています。本質的に同じものをなぜ呼び分けているのかというと、これまで、静的型付け言語であっても null や undefined といった **虚無値** に対する型チェックが貧弱な (Null 安全でない) ものが多く、Null の引き起こす実行時エラーが莫大な苦痛と損害を生み出してきたからです。現在の TypeScript は静的型付けで Null 安全な言語であり、null や undefined を含めて、型の不整合による実行時エラーを強力に防止することができます。
+TypeScript を導入する最大の利点は **静的型検査** によって型エラーを実行前に検知できることです。静的型検査は「数値を受け取る関数にうっかり文字列を渡してしまう」ことや、「null や undefined が入っている変数にうっかりアクセスして実行時エラーが起こる」ことを阻止します。この 2 つの例のうち後者は **Null 安全** と呼ばれています。本質的に同じものをなぜ呼び分けているのかというと、これまで、静的型付け言語であっても null や undefined といった **虚無値** に対する型チェックが貧弱な (Null 安全でない) ものが多く、Null の引き起こす実行時エラーが莫大な苦痛と損害を生み出してきたからです。現在の TypeScript は静的型付けで Null 安全な言語であり、null や undefined を含めて、型の不整合による実行時エラーを強力に防止することができます。
 
-前記の記事は Null 安全でない言語をレガシーと切り捨てて Null 安全でない開発者に煽りをかけることで、Null 安全への導入を行った記事でした。しかし、当時の JS/TS の Null 安全機能が貧弱だったこともあって全体的に Kotlin と Swift に寄った記述になっており、2020 年にかけて JavaScript、TypeScript の Null 安全機能が圧倒的な進化を遂げたことにより古い情報になってしまっています。これが本記事の執筆された理由です。本記事では 2021 年 1 月時点での最新版である TypeScript 4.1 で使える、null と undefined とうまく付き合っていくための言語機能を網羅的に紹介していきます。
+4 年間で TypeScript の Null 安全機能は大きく進歩してきました。本記事では 2021 年 6 月時点での最新版である TypeScript 4.3 で使える、null と undefined とうまく付き合っていくための言語機能を網羅的に紹介していきます。
 
 # 読むのに必要な知識 / この記事で扱わない内容
 
@@ -23,14 +23,13 @@ TypeScript を導入することの利点は **静的型検査** のただ一点
 - 静的型付け言語の基礎的な知識
 
 :::message
-TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript Playground](https://typescriptlang.org/play/) をおすすめします。CLI では ts-node, Deno が使えます。
+TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript Playground](https://typescriptlang.org/play/) をおすすめします。
 :::
 
 ## ソースコード中の絵文字について
 
 - 「💥」は実行時エラーです。コードを実行すると `TypeError` などのエラーが発生します
   - 実際にプログラムを運用している最中に発生して異常終了等を招くので、プログラムを書く上では可能な限り避けたいものです
-  - 未定義動作ゾーンに突入して鼻から悪魔が出るよりはマシです
 - 「❗」はコンパイルエラーです。TypeScript→JavaScript のトランスパイル時に `tsc` が出力します
   - 実際に運用する前に発生し、実行時エラーを事前に告知する役割があります
 
@@ -38,13 +37,13 @@ TypeScript の動作を確かめたいときは Web 上で試せる [TypeScript 
 
 **Null チェック (値が Null でないことの確認) を強制** することで、Null (および nil, None などのいわゆる虚無値) による **実行時エラー** を起こさせない仕組みのことです。
 
-「無効かもしれない値」を型で表現する、というアイデアは OCaml, Haskell, Elm といった関数型言語においてはそう新しいものではありません。それが最近では Swift, Rust, Kotlin, Dart といったイカしたマルチパラダイム言語に導入されて一躍注目されるようになったわけです。TypeScript も Null 安全を搭載した、最近のイカしたマルチパラダイム言語です。イカしたマルチパラダイム言語だと思います。型がついた以外 JavaScript と変わりないので違うかもしれない。
+「無効かもしれない値」を型で表現する、というアイデアは OCaml, Haskell, Elm といった関数型言語においてはそう新しいものではありません。それが最近では Swift, Rust, Kotlin, Dart といったイカしたマルチパラダイム言語に導入されて一躍注目されるようになったわけです。
 
-JavaScript には `null` の他に `undefined` という虚無値があるので「Null/Undefined 安全」とか呼んだほうがいいかもしれませんが、同一視してもさほど困らない物事をわざわざ冗長な表現で区別して呼ぶのは無駄なので単に Null 安全と呼ぶことにします。
+JavaScript には `null` の他に `undefined` という虚無値があるので「Null/Undefined 安全」とか呼んだほうがいいかもしれませんが、長いので単に Null 安全と呼びます。
 
 ## ぬるぽ
 
-大前提として、JavaScript では `null` `undefined` へのプロパティアクセスや関数としての呼び出しを試みると `TypeError` が発生します。Java のぬるぽ^[ｶﾞｯ] (`java.lang.NullPointerException`) に相当します。
+大前提として、JavaScript では `null` `undefined` へのプロパティアクセスや関数としての呼び出しを試みると `TypeError` が発生します。Java のぬるぽ (`java.lang.NullPointerException`) に相当します。
 
 ```js:JavaScript
 const str = null;
@@ -53,7 +52,7 @@ str.toUpperCase();
 ```
 
 :::message
-`null` `undefined` のプロパティにアクセスした場合は `TypeError` になりますが、演算子を使ったり関数の引数に使ったりした場合は必ずしもそうとは限りません。`null` `undefined` で挙動に差があることもあり、たとえば `Number(undefined)` は `NaN` を返しますが `Number(null)` は `0` を返します。算術演算では `Number` で数値に変換されるので `undefined + 3` は `NaN + 3` になって `NaN` ですが `null + 3` は `0 + 3` になって `3` になります。
+`null` `undefined` のプロパティにアクセスした場合は `TypeError` になりますが、演算子を使ったり関数の引数に使ったりした場合は必ずしもそうとは限りません。`null` `undefined` で挙動に差があることもあり、たとえば `Number(undefined)` は `NaN` を返しますが `Number(null)` は `0` を返します。
 :::
 
 ## 静的型付けだけど Null 安全じゃない
@@ -73,7 +72,7 @@ str.toUpperCase();
 // 💥 TypeError: Cannot read property 'toUpperCase' of null
 ```
 
-何が悪かったのかおわかりでしょうか。**`string` 型に `null` が代入可能であることが間違っている** のです。なぜなら `null` `undefined` は `toUpperCase()` といった **`string` の機能が使えないからです**。**`string` として使えないにもかかわらず`string` 型の一員として認められている** のです。これは Java などの非 Null 安全言語が犯している大きな過ちで、世界の歪みです。Null 安全言語はこの歪みを破壊します。
+何が悪かったのかおわかりでしょうか。**`string` 型に `null` が代入可能であることが間違っている** のです。なぜなら `null` `undefined` は `toUpperCase()` といった `string` の機能が使えないからです。**`string` として使えないにもかかわらず`string` 型の一員として認められている** のです。これは Java などの非 Null 安全言語が犯している大きな過ちです。
 
 :::message
 `T` 型の値に `null` を代入できる、という壮大な誤りについては『[null 安全を誤解している人達へのメッセージ - Qiita](https://qiita.com/omochimetaru/items/ee29d4c6eb0d78f02b15#%E6%84%8F%E8%A6%8B-null%E5%AE%89%E5%85%A8%E3%81%8C%E3%81%9D%E3%82%93%E3%81%AA%E3%81%AB%E7%B4%A0%E6%99%B4%E3%82%89%E3%81%97%E3%81%84%E3%81%AA%E3%82%89%E3%81%9D%E3%81%AE%E5%8F%8D%E9%9D%A2%E9%AB%98%E3%81%84%E3%82%B3%E3%82%B9%E3%83%88%E3%81%8C%E3%81%82%E3%82%8B%E3%81%AF%E3%81%9A%E3%81%A0%E7%94%9F%E7%94%A3%E6%80%A7%E3%81%8C%E4%B8%8B%E3%81%8C%E3%82%8B%E3%81%AF%E3%81%9A%E3%81%A0)』が詳しいです (動的型付け言語の JavaScript とはあまり重ならない話もありますが)。
@@ -81,27 +80,9 @@ str.toUpperCase();
 
 ## Null 安全を有効化する
 
-それでは満を持して Null 安全を導入します。TypeScript では後方互換性の都合^[`strictNullChecks` は TypeScript 2.0 で導入されたもので、それまでの TypeScript は Java 同様ガバガバ型検査の Null 安全でない言語でした。新しい型チェックをデフォルト有効のオプトアウト方式にすると既存のコードベースが TypeScript アップグレードのたびにオプトアウトを設定しなければならなくなるので仕方がないといえば仕方がないです。] で Null 安全はオプションになっています。`tsconfig.json` の `compilerOptions` で `strictNullChecks` を `true` にしましょう。
+それでは満を持して Null 安全を導入します。TypeScript では後方互換性の都合^[`strictNullChecks` は TypeScript 2.0 で導入されたもので、それまでの TypeScript は Java 同様 Null 安全でない言語でした。] で Null 安全を有効化するにはオプション `strictNullChecks` を有効化する必要があります。各種の厳格なチェックを有効化する `strict` にも含まれています。
 
-```json:tsconfig.json
-{
-  "compilerOptions": {
-    "strictNullChecks": true
-  }
-}
-```
-
-各種の厳格なチェックを有効化する `strict` オプションが設定されていれば `strictNullChecks` も一緒に有効になります。
-
-```json:tsconfig.json
-{
-  "compilerOptions": {
-    "strict": true
-  }
-}
-```
-
-`tsc --init` で生成される `tsconfig.json` も `strict: true` なので、普通にセットアップすれば TypeScript は Null 安全な状態になっているはずです。フレームワークとかテンプレートによっては `strict: false` な `tsconfig.json` がデフォルトになってるのも^[Next.js のことを言っている] 存在はしますが、新規のプロジェクトなら `strict` を有効化して開発するとより型安全になるのでおすすめです。
+オプションとは言っても、`tsc --init` で生成される tsconfig.json は `strict: true` なのでそのまま使うだけで Null 安全になります。フレームワークとかテンプレートによっては `strict: false` な `tsconfig.json` がデフォルトになってるのも存在はしますが、新規のプロジェクトなら `strict` を有効化して開発するとより型安全になるのでおすすめです。
 
 なお、これらのコンパイラオプションは `tsc` コマンドのオプションとして指定することもできます。
 
@@ -145,13 +126,13 @@ if (str !== null) {
 
 # Nullish を知る
 
-JavaScript は珍しい言語で、虚無値が 2 つあります。`null` と `undefined` です。この 2 つをあわせて呼ぶ呼び方として、ぜんぜん普及していませんが **Nullish** という言葉を使います。これは `null` と `undefined` をうまく処理するための演算子 「Nullish Coalescing Operator」 に由来していますが、日本語訳が「Null 合体演算子」となっているので微妙に伝わりづらいのが悩みの種です。
+前述したように JavaScript は珍しい言語で、虚無値が 2 つあります。`null` と `undefined` です。この 2 つをあわせて呼ぶ呼び方として、ぜんぜん普及していませんが **Nullish** という言葉を使います。これは `null` と `undefined` をうまく処理するための演算子 「Nullish Coalescing Operator」 に由来していますが、日本語訳が「Null 合体演算子」となっているので微妙に伝わりづらいのが悩みの種です。
 
 ## Null
 
 `null` は値がないことを示すプリミティブ値です。`undefined` と異なり、関数の返り値として現れることはあっても JavaScript の構文から自然発生することはありません。
 
-たとえば ECMAScript の `String.prototype.match()` や DOM API の `document.querySelector()` は `null` を返します。
+たとえば ECMAScript の `String.prototype.match()` や DOM API の `document.querySelector()` は `null` を返します。言語に依存しない API では null が使われることが多いです。
 
 ## Undefined とその出現場所
 
@@ -651,7 +632,7 @@ declare const u: unknown;
 u.toString(); // ❗ Object is of type 'unknown'.(2571)
 ```
 
-`unknown` 型は `{} | null | undefined` 型とほぼ同じ ^[実際は `{} | null | undefined` が `unknown` の部分型になっています] ですが実際にユニオン型として定義されているわけではないので、`if (u != null)` といった「Nullish であることの否定」で `{}` 型を導くことはできません。ほしい型があるなら `typeof u === "string"` や `u instanceof Date` のように直接言って推論させましょう。nullish だけ除去した `{}` を得たい場合は `u instanceof Object` すれば同等の `Object` を得られます^[先程の `Object.create(null)` のように `Object` を経由していない値が漏れる点に注意してください]。
+`unknown` 型は `{} | null | undefined` 型とほぼ同じ ^[実際は `{} | null | undefined` が `unknown` の部分型になっています] ですが実際にユニオン型として定義されているわけではないので、`if (u != null)` といった「Nullish であることの否定」で `{}` 型を導くことはできません。ほしい型があるなら `typeof u === "string"` や `u instanceof Date` のように直接推論させましょう。nullish だけ除去した `{}` を得たい場合は `u instanceof Object` すれば同等の `Object` を得られます^[先程の `Object.create(null)` のように `Object` を経由していない値が漏れる点に注意してください]。
 
 # Null 合体演算子 `??` - 式が Nullish だった場合の代替値を与えたい
 

@@ -23,11 +23,11 @@ Hello, world!
 
 # プロファイル
 
-GNU Hello がどこに導入されているか確認してみましょう。
+GNU Hello がどこに導入されているか確認しよう。
 
 ```shell
 ❯ which hello
-/home/u/.nix-profile/bin/hello # ユーザ名 u は人によって異なります
+/home/u/.nix-profile/bin/hello # ユーザ名 u は人によって異なる
 ```
 
 このパスにある `~/.nix-profile` があなたが今使用しているプロファイルだ。より正確には、`nix profile install nixpkgs#hello` 現在のプロファイルに `hello` パッケージをインストールするというコマンドだった。
@@ -98,3 +98,7 @@ bin  share
 ```
 
 プロファイルからは除去されたが、Nix Store からは削除されていないことがわかる。
+
+# もっと読みたい
+
+https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-profile.html

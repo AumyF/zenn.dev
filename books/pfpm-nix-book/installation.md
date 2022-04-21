@@ -2,11 +2,11 @@
 title: "Nixを導入する"
 ---
 
-Nix は一般的な Linux ディストリビューションと macOS に対応している。また、NixOS を導入すれば最初から Nix を使用することができます。
+Nix は一般的な Linux ディストリビューションと macOS に対応している。また、NixOS を導入すれば最初から Nix を使用することができる。
 
 # Linux に Nix を導入する
 
-以下のコマンドを実行すると、Nix のインストールスクリプトをダウンロードし、実行する。もちろん、一回スクリプトをダウンロードし、中身を精査してから実行してもよい。
+以下のコマンドを実行すると、Nix のインストールスクリプトをダウンロードし、実行する。もちろん、一回スクリプトをファイルに保存し、中身を精査してから実行してもよい。
 
 ```shell
 ❯ curl -L https://nixos.org/nix/install | sh
@@ -38,3 +38,9 @@ macOS Catalina 以降でルートファイルシステムが read-only になっ
 ❯ nix --version
 nix (Nix) 2.4
 ```
+
+# もっと読みたい
+
+https://nixos.org/manual/nix/stable/installation/installing-binary.html
+
+https://nixos.org/guides/nix-pills/install-on-your-running-system.html

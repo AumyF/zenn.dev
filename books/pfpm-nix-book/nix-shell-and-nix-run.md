@@ -61,3 +61,9 @@ grep ですから、何か検索してみたい。`$PATH` をエントリ (`:` �
 # `nix shell` の終了
 
 `nix shell` を終了するには、普通にシェルを終了するのと同じく `^D` を入力するか `exit` コマンドを実行する。
+
+# もっと読みたい
+
+https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-run.html
+
+https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-shell.html
